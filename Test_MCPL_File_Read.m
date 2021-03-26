@@ -1,6 +1,6 @@
 clear all;
 close all;
-Include_Subdirectories({'Parpool','WinRAR','File_Operations','Geometric'});
+Include_Subdirectories({'Parpool','WinRAR','File_Operations'});
 File_Path = 'C:\Users\alex_\Desktop\MCPL_Output_Diffraction_Test_20210302_123431\MCPL_Output_Diffraction_Test.mcpl.gz';
 %32 bit
 File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Polarisation_Single_Precision.mcpl.gz';
