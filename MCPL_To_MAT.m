@@ -6,13 +6,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Parameters)
     Remove_Zero_Weights = 1;
     Remove_Temp_Files = true;
     %% Uncompress GZ archive using WinRAR
-    [Directory_Path, Filename, Extension] = fileparts(File_Path);
+    [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
     if(strcmpi(Extension, '.gz'))
         Uncompressed_File_Path = strcat(Directory_Path, filesep, Filename, '-UNCOMPRESS');
         RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
         RAR_Parameters.Overwrite_Mode = true;
         if(~Skip_Uncompress)
-            Successful_Uncompress = UNRAR(File_Path, Uncompressed_File_Path, RAR_Parameters);
+            Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
         else
             Successful_Uncompress = 1;
         end
@@ -24,16 +24,16 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Parameters)
         File_Path_Search = Uncompressed_File_Path;
         clear Successful_Uncompress Uncompressed_File_Path;
     elseif(strcmpi(Extension, '.mcpl'))
-        if(isfile(File_Path))
-            MCPL_File_List{1} = File_Path;
+        if(isfile(MCPL_File_Path))
+            MCPL_File_List{1} = MCPL_File_Path;
         else
             MCPL_File_List = {};
         end
-        File_Path_Search = File_Path;
+        File_Path_Search = MCPL_File_Path;
     else
         error('Unexpected file format');
     end
-    clear Extension Filename Directory_Path File_Path;
+    clear Extension Filename Directory_Path MCPL_File_Path;
 
     %% Find MCPL file(s) that aren't explicitly stated in the original input (if a directory is specified)
     if(isempty(MCPL_File_List))
