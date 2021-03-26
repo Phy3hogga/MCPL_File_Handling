@@ -1,6 +1,3 @@
-[submodule "Winrar.git"]
-	path = WinRAR
-	url = git@github.com:Phy3hogga/WinRAR.git
 [submodule "File_Operations.git"]
 	path = File_Operations
 	url = git@github.com:Phy3hogga/File_Operations.git
