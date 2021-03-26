@@ -10,3 +10,6 @@
 [submodule "WinRAR.git"]
 	path = WinRAR
 	url = git@github.com:Phy3hogga/WinRAR.git
+[submodule "Input_Validation.git"]
+	path = Input_Validation
+	url = git@github.com:Phy3hogga/Input_Validation.git
