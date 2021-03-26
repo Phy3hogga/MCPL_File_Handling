@@ -10,6 +10,12 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %64 bit data for testing
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 
+%% Parameters for WinRAR implementation
+%Path to WinRAR executable
+RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
+%By default overwrite any files already existing
+RAR_Parameters.Overwrite_Mode = true;
+
 %% Parameters for MCPL processing to MAT file
 %If events are sorted in descending order of weight with the most significant events at the top of the file. (true = sort)
 Read_Parameters.Sort_Events_By_Weight = true;
@@ -21,6 +27,8 @@ Read_Parameters.Remove_Temp_Files = true;
 Read_Parameters.Skip_Uncompress = false;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
 Read_Parameters.Parpool_Num_Cores = 6;
+%Add RAR Parameters to the Read Parameters
+Read_Parameters.RAR_Parameters = RAR_Parameters;
 
 %% Convert MCPL file to MAT file format
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);

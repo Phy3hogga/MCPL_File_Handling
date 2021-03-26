@@ -1,16 +1,51 @@
 %% Reads MCPL file and converts it to a MAT file
-function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Parameters)
-    Skip_Uncompress = 1;
-    Parpool_Num_Cores = 6;
-    Sort_Events_By_Weight = 1;
-    Remove_Zero_Weights = 1;
-    Remove_Temp_Files = true;
+function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
+    %% Input handling
+    %Argument handling
+    if(nargin == 0)
+        error("MCPL_To_MAT requires a file path input");
+    elseif(nargin == 1)
+        warning("Using default settings for MCPL_To_Mat");
+    end
+    %Skipping decompression
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Skip_Uncompress', false);
+    if(Struct_Var_Valid)
+        Skip_Uncompress = Struct_Var_Value;
+    else
+        Skip_Uncompress = false;
+    end
+    %Sorting events by weighting
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Sort_Events_By_Weight', true);
+    if(Struct_Var_Valid)
+        Sort_Events_By_Weight = Struct_Var_Value;
+    else
+        Sort_Events_By_Weight = true;
+    end
+    %Removal of 0 weight events
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Remove_Zero_Weights', true);
+    if(Struct_Var_Valid)
+        Remove_Zero_Weights = Struct_Var_Value;
+    else
+        Remove_Zero_Weights = true;
+    end
+    %Removal of 0 weight events
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Remove_Temp_Files', true);
+    if(Struct_Var_Valid)
+        Remove_Temp_Files = Struct_Var_Value;
+    else
+        Remove_Temp_Files = true;
+    end
     %% Uncompress GZ archive using WinRAR
     [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
     if(strcmpi(Extension, '.gz'))
+        %Extraction of GZ archive (if the file format matches)
         Uncompressed_File_Path = strcat(Directory_Path, filesep, Filename, '-UNCOMPRESS');
-        RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
-        RAR_Parameters.Overwrite_Mode = true;
+        %Only use RAR_Parameters field if it has been parsed by previous settings structure
+        if(isfield(Read_Parameters, 'RAR_Parameters'))
+            RAR_Parameters = Read_Parameters.RAR_Parameters;
+        else
+            RAR_Parameters = struct();
+        end
         if(~Skip_Uncompress)
             Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
         else
@@ -24,6 +59,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Parameters)
         File_Path_Search = Uncompressed_File_Path;
         clear Successful_Uncompress Uncompressed_File_Path;
     elseif(strcmpi(Extension, '.mcpl'))
+        %No extraction required
         if(isfile(MCPL_File_Path))
             MCPL_File_List{1} = MCPL_File_Path;
         else
