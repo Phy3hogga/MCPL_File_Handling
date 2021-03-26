@@ -35,6 +35,12 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Remove_Temp_Files = true;
     end
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Parpool_Num_Cores', 1);
+    if(Struct_Var_Valid)
+        Parpool_Num_Cores = Struct_Var_Value;
+    else
+        Parpool_Num_Cores = 1;
+    end
     %% Uncompress GZ archive using WinRAR
     [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
     if(strcmpi(Extension, '.gz'))
@@ -101,7 +107,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         end
         %Find size of a single photon's information from header information
         if(Header.Valid)
-            tic
+            %% Prep for reading data
             %Variable type data
             if(Header.Opt_SinglePrecision)
                 Byte_Size = 4;
@@ -216,9 +222,11 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(~Directory_Creation_Success)
                 warning(strcat("Failed to create temporary output directory for: ", File_List(Read_Index).name));
             end
-            %% Parallel core
-            Parpool = Parpool_Create(Parpool_Num_Cores);
-            %DEBUG - If parpool is disabled; requires the number of cores to be assigned to a variable
+            %% Parallel core processing setup
+            if(Parpool_Num_Cores > 1)
+                Parpool = Parpool_Create(Parpool_Num_Cores);
+            end
+            %If parpool is disabled; requires the number of cores to be assigned to a variable
             if(~exist('Parpool', 'var'))
                 Parpool.NumWorkers = Parpool_Num_Cores;
             end
@@ -260,19 +268,26 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             %Save header
             Header_File_Path = fullfile(Temp_Output_File_Root, 'Header.mat');
             save(Header_File_Path, '-v7.3', '-struct', 'Header');
-            O = tic;
             %% Read file chunks aand dump them to disk, sorted individual chunks by weighting
-            parfor Current_File_Chunk = 1:length(File_Chunks)
-                MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+            disp("Reading MCPL file");
+            if(Parpool_Num_Cores > 1)
+                %Parallel processing
+                parfor Current_File_Chunk = 1:length(File_Chunks)
+                    MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                end
+                Parpool_Delete();
+            else
+                %Single core processing
+                for Current_File_Chunk = 1:length(File_Chunks)
+                    MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                end
             end
-            Parpool_Delete();
-            %Clear all variables except the header and header file location
-
-            %% Combine all output files
-            %Create LUT file between the different chunks
+            
+            %% Combine all output file(s)
+            disp("Processing MCPL file into MAT file");
             MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path);
 
-            %% Cleanup temporary files
+            %% Cleanup temporary files (including all files within)
             if(Remove_Temp_Files)
                 Temporary_Files_Removed = rmdir(Temp_Output_File_Root, 's');
             end
