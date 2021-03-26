@@ -2,7 +2,7 @@ clear all;
 close all;
 
 %Include directories to external GIT libraries
-Include_Subdirectories({'Parpool','WinRAR','File_Operations', 'Input_Validation'});
+Include_Subdirectories({'Parpool','WinRAR','File_Operations', 'Input_Validation', 'Data_Operations'});
 
 %% Test Data
 %32 bit data for testing
