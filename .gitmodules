@@ -4,3 +4,6 @@
 [submodule "File_Operations.git"]
 	path = File_Operations
 	url = git@github.com:Phy3hogga/File_Operations.git
+[submodule "Parpool.git"]
+	path = Parpool
+	url = git@github.com:Phy3hogga/Parpool.git
