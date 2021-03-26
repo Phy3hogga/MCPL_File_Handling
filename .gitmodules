@@ -7,3 +7,6 @@
 [submodule "Data_Operations.git"]
 	path = Data_Operations
 	url = git@github.com:Phy3hogga/Data_Operations.git
+[submodule "WinRAR.git"]
+	path = WinRAR
+	url = git@github.com:Phy3hogga/WinRAR.git
