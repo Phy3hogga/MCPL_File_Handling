@@ -1,0 +1,3 @@
+[submodule "Winrar.git"]
+	path = Winrar
+	url = git@github.com:Phy3hogga/Winrar.git
