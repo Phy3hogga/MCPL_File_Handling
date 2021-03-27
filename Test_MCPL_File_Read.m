@@ -32,3 +32,5 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 
 %% Convert MCPL file to MAT file format
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
+
+MCPL_File = MAT_To_MCPL(Mat_File_Path);
