@@ -1,5 +1,9 @@
 %Turn MAT file back into a MCPL file
 function MCPL_File = MAT_To_MCPL(Mat_File_Path)
+    %% Input handling
+    if(nargin ~= 1)
+        error("Expected single input of MAT file path");
+    end
     %Verify the MAT file exists
     if(isfile(Mat_File_Path))
         %Identify variables within the MAT file

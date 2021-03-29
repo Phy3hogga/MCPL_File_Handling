@@ -92,8 +92,10 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     for Read_Index = 1:length(File_List)
         %Path and reference to file
         File_Path = fullfile(File_List(Read_Index).folder, filesep, File_List(Read_Index).name);
+        disp(strcat("Reading MCPL file : ", File_Path));
         File_ID = fopen(File_Path, 'r');
         %% Read file header
+        disp("Reading MCPL Header");
         Header = MCPL_Read_Header(File_ID);
         Endian = Header.Endian;
         %Get size of file
@@ -222,6 +224,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(~Directory_Creation_Success)
                 warning(strcat("Failed to create temporary output directory for: ", File_List(Read_Index).name));
             end
+            disp("Reading MCPL Data");
             %% Parallel core processing setup
             if(Parpool_Num_Cores > 1)
                 Parpool = Parpool_Create(Parpool_Num_Cores);
@@ -269,7 +272,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header_File_Path = fullfile(Temp_Output_File_Root, 'Header.mat');
             save(Header_File_Path, '-v7.3', '-struct', 'Header');
             %% Read file chunks aand dump them to disk, sorted individual chunks by weighting
-            disp("Reading MCPL file");
             if(Parpool_Num_Cores > 1)
                 %Parallel processing
                 parfor Current_File_Chunk = 1:length(File_Chunks)
@@ -863,7 +865,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         Write_Initial_Index = 1;
                     end
 
-                    %Sense-check linear indicies
+                    %Sense-check linear indicies (it is possible for all elements to have been written last iteration due to the delay in the read / iteration cycle)
                     if(Write_Initial_Index <= Write_Final_Index)
                         %Write to file
                         File_Write_Index_End = File_Write_Index + length(Weight_Table.File_Index(Write_Initial_Index:Write_Final_Index)) - 1;
@@ -931,7 +933,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                             Current_File_Row_Offset(Current_File) = max(0, length(find(Weight_Table.File_Index == Current_File)));
                         end
                     else
-                        disp("Warning: Final Index larger than Initial Index when combining files.");
+                        %%Disabled warning; not found to be useful
+                        %disp("Warning: Final Index larger than Initial Index when combining files.");
                     end
                 else
                     disp("Warning: Determination of position for the final data from chunk undetermined.");
@@ -941,39 +944,43 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
             end
         end
     end
-    %% Write final contents of table
+    %% Write final contents of table (if any data remains)
     %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory
     NaN_Elements = find(isnan(Weight_Table.X) | isnan(Weight_Table.Y) | isnan(Weight_Table.Z));
     Weight_Table(NaN_Elements,:) = [];
     %Write to file
     File_Write_Index_End = File_Write_Index + height(Weight_Table) - 1;
-    if(Header.Opt_Polarisation)
-        Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
-        Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
-        Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
+    %Only write remaining data to the table if data remains from the sorting process
+    if(File_Write_Index_End >= File_Write_Index)
+        if(Header.Opt_Polarisation)
+            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
+            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
+            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
+        end
+        Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(:);
+        Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(:);
+        Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(:);
+        Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(:);
+        Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(:);
+        Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(:);
+        Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(:);
+        Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(:);
+        Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
+        Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
+        Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
+        if(~Header.Opt_UniversalWeight)
+            Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(:);
+        end
+        if(Header.Opt_UniversalPDGCode == 0)
+            Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(:);
+        end
+        if(Header.Opt_Userflag)
+            Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(:);
+        end
     end
-    Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(:);
-    Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(:);
-    Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(:);
-    Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(:);
-    Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(:);
-    Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(:);
-    Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(:);
-    Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(:);
-    Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
-    Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
-    Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
-    if(~Header.Opt_UniversalWeight)
-        Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(:);
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(:);
-    end
-    if(Header.Opt_Userflag)
-        Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(:);
-    end
-
-    % Remove additional 0'd entries if they exist
+    % Remove additional 0'd entries from the preallocation in the MAT file if they exist
+    %Increment so no data is overwritten on the last entry
+    File_Write_Index_End = File_Write_Index_End + 1;
     if(Header.Particles > File_Write_Index_End)
         if(Header.Opt_Polarisation)
             Merged_File_Reference.Px(File_Write_Index_End:Header.Particles, 1) = [];
@@ -1001,11 +1008,16 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
             Merged_File_Reference.UserFlag(File_Write_Index_End:Header.Particles) = [];
         end
     end
+    %Decrement to find the final event again
+    File_Write_Index_End = File_Write_Index_End - 1;
     %Display output file progress
     disp(strcat("Input Events             : ", num2str(Header.Particles)));
     disp(strcat("Retained Events          : ", num2str(File_Write_Index_End)));
     disp(strcat("Removed 0 Weight Events  : ", num2str(Removed_Zero_Count)));
-    
+    %Warning for mismatch on number of events read / discarded from total
+    if((Header.Particles - File_Write_Index_End) ~= Removed_Zero_Count)
+        disp("Warning: Total number of events read and removed zero weight events mismatch.");
+    end
     %Edit the number of events in the stored file
     Header.Particles = File_Write_Index_End;
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
