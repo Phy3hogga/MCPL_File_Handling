@@ -9,6 +9,8 @@ Include_Subdirectories({'Parpool','WinRAR','File_Operations', 'Input_Validation'
 File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Polarisation_Single_Precision.mcpl.gz';
 %64 bit data for testing
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
+%64 bit dataset (small file)
+File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
@@ -33,4 +35,6 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 %% Convert MCPL file to MAT file format
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 
-MCPL_File = MAT_To_MCPL(Mat_File_Path);
+for Current_Mat_File = 1:length(Mat_File_Path)
+    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File});
+end

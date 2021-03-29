@@ -312,20 +312,28 @@ function Header = MCPL_Read_Header(File_ID)
         if(Format_Version == 2)
             warning(["MCPL file version 2 not fully tested for this script, legacy input: ", File_List(File_Index).name]);
         end
+        %Get computer native endian type
+        [~, ~, Computer_Endian] = computer;
         %Check file endian type
-        Endian_Version = File_Header(8);
-        if(strcmpi(Endian_Version, 'B'))
+        File_Endian_Version = File_Header(8);
+        Header.Endian_Switch = false;
+        %Compare endianness between the file and computer
+        if(strcmpi(File_Endian_Version, 'B'))
+            if(strcmpi(Computer_Endian, 'L'))
+                Header.Endian_Switch = true;
+            end
             Endian.T32 = 'b';
             Endian.T64 = 's';
-        elseif(strcmpi(Endian_Version, 'L'))
+        elseif(strcmpi(File_Endian_Version, 'L'))
+            if(strcmpi(Computer_Endian, 'B'))
+                Header.Endian_Switch = true;
+            end
             Endian.T32 = 'l';
             Endian.T64 = 'a';
         else
             error(["Could not determine endianness for file: ", File_List(File_Index).name]);
         end
         Header.Endian = Endian;
-%% TODO Check and add endian switch conditions for swapbytes
-        Header.Endian_Switch = false;
         % Cleanup
         clear File_Header Endian_Version;
 
