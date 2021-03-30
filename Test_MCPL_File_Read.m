@@ -38,3 +38,6 @@ Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 for Current_Mat_File = 1:length(Mat_File_Path)
     MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File});
 end
+
+%Test
+MCPL_To_MAT(MCPL_File, Read_Parameters);

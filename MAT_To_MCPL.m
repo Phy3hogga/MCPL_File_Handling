@@ -1,5 +1,7 @@
 %Turn MAT file back into a MCPL file
 function MCPL_File = MAT_To_MCPL(Mat_File_Path)
+    %MCPL_File = fullfile(fileparts(Mat_File_Path), 'test.MCPL');
+    MCPL_File = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\DEBUG\test.MCPL';
     %% Input handling
     if(nargin ~= 1)
         error("Expected single input of MAT file path");
@@ -58,6 +60,7 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                     %% Load the file header
                     Header = load(Mat_File_Path, '-mat', 'Header');
                     Header = Header.Header;
+                    %Verify the number of events matches the length of the data
                     if(Number_Of_Events ~= Header.Particles)
                         disp(strcat("Warning: Number of events in header disagrees with the quantity of data in MAT file: ", Mat_File_Path));
                         disp(strcat("Number of Events in Header: ", num2str(Header.Particles)));
@@ -67,19 +70,136 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                     end
                     
                     %% Create header content
-                    Header_Content = 'MCPL003';
-                    %Get computer native endian type
-                    [~, ~, Computer_Endian] = computer;
-                    %Compare endianness between the file and computer
-                    if(strcmpi(Computer_Endian, 'B'))
-                        Header_Content(end + 1) = 'B';
-                    elseif(strcmpi(Computer_Endian, 'L'))
-                        Header_Content(end + 1) = 'L';
+                    %% Open file for writing
+                    File_ID = fopen(MCPL_File, 'w');
+                    %Write file header
+                    File_ID = MCPL_Write_Header(File_ID, Header);
+                    %Find memory limits for translating file contents in memory between datatypes
+                    [~, System_Memory] = memory;
+                    Interval = floor((System_Memory.PhysicalMemory.Available * 0.35) / (Header.Photon_Byte_Count + (3 * Header.Byte_Size)));
+                    Chunks = 1:Interval:Header.Particles;
+                    if(length(Chunks) > 1)
+                        %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
+                        %Either adds an additional chunk or appends a few extra events to the final chunk depending on discrepency
+                        if(Chunks(end) ~= Header.Particles)
+                            Chunks(end) = Header.Particles;
+                        end
+                        %Calculate dynamic and corrected interval
+                        Interval = Chunks(2:end) - Chunks(1:end-1);
+                        File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1), 'Start', num2cell(((Chunks(1:end-1)-1) * Header.Photon_Byte_Count) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Header.Photon_Byte_Count + Header.End + 1), 'Events', num2cell(Interval));
+                        %End of file correction (should be a single Event)
+                        if(File_Chunks(end).End ~= File.End)
+                            %Adjust final chunk end if required
+                            File_Chunks(end).End = File.End;
+                            %Adjust chunk size as per end of file
+                            File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Photon_Byte_Count;
+                        end
                     else
-                        error(strcat("Could not determine system endianness to write file : ", Mat_File_Path));
+                        File_Chunks(1).Chunk = 1;
+                        File_Chunks(1).Start = 1;
+                        File_Chunks(1).End = Header.Particles;
+                        File_Chunks(1).Events = Header.Particles;
                     end
-                    
-                    
+                    Max_Chunk_Events = max([File_Chunks(:).Events]);
+                    %Preallocate variables
+                    if(Header.Opt_SinglePrecision)
+                        Empty_Byte_Type = single(0);
+                        Byte_
+                    else
+                        Empty_Byte_Type = double(0);
+                    end
+                    if(Header.Opt_Polarisation)
+                        Px(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                        Py(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                        Pz(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    end
+                    X(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Y(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Z(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Dx(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Dy(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Dz(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Energy(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    Time(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    EKinDir_1(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    EKinDir_2(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    EKinDir_3(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    if(~Header.Opt_UniversalWeight)
+                        Weight(Max_Chunk_Events, 1) = Empty_Byte_Type;
+                    end
+                    if(Header.Opt_UniversalPDGCode == 0)
+                        PDGCode(Max_Chunk_Events, 1) = int32(0);
+                    end
+                    if(Header.Opt_Userflag)
+                        UserFlag(Max_Chunk_Events, 1) = uint32(0);
+                    end
+                    %Load each chunk from the file
+                    for Current_File_Chunk = 1:length(File_Chunks)
+                        if(Header.Opt_Polarisation)
+                            Px(:) = Mat_File_Reference.Px(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                            Py(:) = Mat_File_Reference.Py(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                            Pz(:) = Mat_File_Reference.Pz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        X(:) = Mat_File_Reference.X(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        Y(:) = Mat_File_Reference.Y(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        Z(:) = Mat_File_Reference.Z(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        Dx(:) = Mat_File_Reference.Dx(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        Dy(:) = Mat_File_Reference.Dy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        %If replacing time with 0 values
+                        if(Replace_Time)
+                            Time(:) = 0;
+                        else
+                            Time(:) = Mat_File_Reference.Time(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        %Only need to directly read energy if recalculating EKinDir
+                        if(Recalculate_EKinDir)
+                            Energy(:) = Mat_File_Reference.Energy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+%% TODO RECALCULATE EKinDir
+                        else
+                            EKinDir_1(:) = Mat_File_Reference.EKinDir_1(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                            EKinDir_2(:) = Mat_File_Reference.EKinDir_2(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                            EKinDir_3(:) = Mat_File_Reference.EKinDir_3(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        if(~Header.Opt_UniversalWeight)
+                            Weight(:) = Mat_File_Reference.Weight(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        if(Header.Opt_UniversalPDGCode == 0)
+                            PDGCode(:) = Mat_File_Reference.PDGCode(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        if(Header.Opt_Userflag)
+                            UserFlag(:) = Mat_File_Reference.UserFlag(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        end
+                        %
+                        tic
+                        for Current_Line = 1:length(X)
+                            if(Header.Opt_Polarisation)
+                                fwrite(File_ID, Px(Current_Line), Header.Byte_Type);
+                                fwrite(File_ID, Py(Current_Line), Header.Byte_Type);
+                                fwrite(File_ID, Pz(Current_Line), Header.Byte_Type);
+                            end
+                            fwrite(File_ID, X(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, Y(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, Z(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, EKinDir_1(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, EKinDir_2(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, EKinDir_3(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, Time(Current_Line), Header.Byte_Type);
+                            if(~Header.Opt_UniversalWeight)
+                                fwrite(File_ID, Weight(Current_Line), Header.Byte_Type);
+                            end
+                            if(Header.Opt_UniversalPDGCode == 0)
+                                fwrite(File_ID, PDGCode(Current_Line), 'int32');
+                            end
+                            if(Header.Opt_Userflag)
+                                fwrite(File_ID, PDGCode(Current_Line), 'uint32');
+                            end
+                        end
+                        toc
+                    end
+                    %% Close file for writing
+                    fclose(File_ID);
                 else
                     error(strcat("Unclear data correspondance between variables (different length) unable to compile MCPL file: ", Mat_File_Path));
                 end
@@ -93,5 +213,61 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
         error(strcat("Could not find the specified MAT file: ", Mat_File_Path));
     end
     %placeholder
-    MCPL_File = Mat_File_Path;
+    MCPL_File = MCPL_File;
+end
+
+%% Write MCPL Header
+function File_ID = MCPL_Write_Header(File_ID, Header)
+    %Get computer native endian type
+    [~, ~, Computer_Endian] = computer;
+    %Compare endianness between the file and computer
+    if(strcmpi(Computer_Endian, 'B'))
+        Endian_Char = 'B';
+    elseif(strcmpi(Computer_Endian, 'L'))
+        Endian_Char = 'L';
+    else
+        error(strcat("Could not determine system endianness to write file : ", Mat_File_Path));
+    end
+    %Number of comments and blobs
+    N_Comments = length(Header.Comments);
+    N_Blobs = length(Header.Blobs.Key);
+    %Write the main header content
+    fwrite(File_ID, strcat('MCPL003', Endian_Char), 'char*1');
+    fwrite(File_ID, Header.Particles, 'uint64');
+    fwrite(File_ID, N_Comments, 'uint32');
+    fwrite(File_ID, N_Blobs, 'uint32');
+    fwrite(File_ID, Header.Opt_Userflag, 'uint32');
+    fwrite(File_ID, Header.Opt_Polarisation, 'uint32');
+    fwrite(File_ID, Header.Opt_SinglePrecision, 'uint32');
+    fwrite(File_ID, Header.Opt_UniversalPDGCode, 'uint32');
+    fwrite(File_ID, Header.Opt_ParticleSize, 'uint32');
+    fwrite(File_ID, Header.Opt_UniversalWeight, 'uint32');
+    if(Header.Opt_UniversalWeight)
+        fwrite(File_ID, Header.Opt_UniversalWeightValue, 'uint64');
+    end
+    File_ID = MCPL_Write_String(File_ID, Header.Source{1});
+    % Comments
+    if(N_Comments > 0)
+        for Current_Comment = 1:N_Comments
+            File_ID = MCPL_Write_String(File_ID, Header.Comments{Current_Comment});
+        end
+    end
+    %Blobs
+    if(N_Blobs > 0)
+        %Blob Keys
+        for Current_Blob = 1:N_Blobs
+            File_ID = MCPL_Write_String(File_ID, Header.Blobs.Key{Current_Blob});
+        end
+        %Blob Data
+        for Current_Blob = 1:N_Blobs
+            File_ID = MCPL_Write_String(File_ID, Header.Blobs.Data{Current_Blob});
+        end
+    end
+end
+
+%% Write MCPL string
+function File_ID = MCPL_Write_String(File_ID, String)
+    String_Length = length(String);
+    fwrite(File_ID, String_Length, 'uint32');
+    fwrite(File_ID, String, '*char');
 end

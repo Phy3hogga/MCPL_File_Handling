@@ -79,19 +79,23 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
 
     %% Find MCPL file(s) that aren't explicitly stated in the original input (if a directory is specified)
     if(isempty(MCPL_File_List))
-        File_List = Search_Files(File_Path_Search, '.mcpl');
-        if(isempty(fieldnames(File_List)))
-            error('No mcpl files found');
-        end
+        %Find all mcpl file in the directory
+        MCPL_File_List = Search_Files(File_Path_Search, '.mcpl');
+    else
+        %Get file path as a directory structure
+        MCPL_File_List = dir(File_Path_Search);
     end
-    clear File_Path_Search MCPL_File_List;
+    if(isempty(fieldnames(MCPL_File_List)))
+        error('No mcpl files found');
+    end
+    clear File_Path_Search;
     
     %Preallocate the list of file paths
-    MAT_File_Path{1:length(File_List)} = '';
+    MAT_File_Path{length(MCPL_File_List)} = '';
     %% Read files
-    for Read_Index = 1:length(File_List)
+    for Read_Index = 1:length(MCPL_File_List)
         %Path and reference to file
-        File_Path = fullfile(File_List(Read_Index).folder, filesep, File_List(Read_Index).name);
+        File_Path = fullfile(MCPL_File_List(Read_Index).folder, filesep, MCPL_File_List(Read_Index).name);
         disp(strcat("Reading MCPL file : ", File_Path));
         File_ID = fopen(File_Path, 'r');
         %% Read file header
@@ -105,7 +109,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         fseek(File_ID, Header.End, 'bof');
         Successful_Close = fclose(File_ID);
         if(Successful_Close == -1)
-            warning(["MCPL file failed to close: ", File_List(Read_Index).name]);
+            warning(["MCPL file failed to close: ", MCPL_File_List(Read_Index).name]);
         end
         %Find size of a single photon's information from header information
         if(Header.Valid)
@@ -219,10 +223,10 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header.Remove_Zero_Weights = Remove_Zero_Weights;
 
             %% Create root output directory
-            Temp_Output_File_Root = fullfile(File_List(Read_Index).folder, filesep, 'TEMPORARY');
+            Temp_Output_File_Root = fullfile(MCPL_File_List(Read_Index).folder, filesep, 'TEMPORARY');
             Directory_Creation_Success = Attempt_Directory_Creation(Temp_Output_File_Root);
             if(~Directory_Creation_Success)
-                warning(strcat("Failed to create temporary output directory for: ", File_List(Read_Index).name));
+                warning(strcat("Failed to create temporary output directory for: ", MCPL_File_List(Read_Index).name));
             end
             disp("Reading MCPL Data");
             %% Parallel core processing setup
@@ -247,24 +251,33 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             end
             %% Photon Data
             Chunks = 1:Interval:Header.Particles;
-            %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
-            %Either adds an additional chunk or appends a few extra events to the final chunk depending on discrepency
-            if(Chunks(end) ~= Header.Particles)
-                if(Header.Particles - Chunks(end) > Parpool_Num_Cores)
-                    Chunks(end + 1) = Header.Particles;
-                else
-                    Chunks(end) = Header.Particles;
+            if(length(Chunks) > 1)
+                %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
+                %Either adds an additional chunk or appends a few extra events to the final chunk depending on discrepency
+                if(Chunks(end) ~= Header.Particles)
+                    if(Header.Particles - Chunks(end) > Parpool_Num_Cores)
+                        Chunks(end + 1) = Header.Particles;
+                    else
+                        Chunks(end) = Header.Particles;
+                    end
                 end
-            end
-            %Calculate dynamic and corrected interval
-            Interval = Chunks(2:end) - Chunks(1:end-1);
-            File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1),'Temp_File_Path', fullfile(strcat(Temp_Output_File_Root, filesep, arrayfun(@num2str, 1:1:length(Chunks)-1, 'UniformOutput', 0), '.mat')), 'Start', num2cell(((Chunks(1:end-1)-1) * Photon_Byte_Count) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Photon_Byte_Count + Header.End + 1), 'Events', num2cell(Interval));
-            %End of file correction (should be a single Event)
-            if(File_Chunks(end).End ~= File.End)
-                %Adjust final chunk end if required
-                File_Chunks(end).End = File.End;
-                %Adjust chunk size as per end of file
-                File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Photon_Byte_Count;
+                %Calculate dynamic and corrected interval
+                Interval = Chunks(2:end) - Chunks(1:end-1);
+                File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1),'Temp_File_Path', fullfile(strcat(Temp_Output_File_Root, filesep, arrayfun(@num2str, 1:1:length(Chunks)-1, 'UniformOutput', 0), '.mat')), 'Start', num2cell(((Chunks(1:end-1)-1) * Photon_Byte_Count) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Photon_Byte_Count + Header.End + 1), 'Events', num2cell(Interval));
+                %End of file correction (should be a single Event)
+                if(File_Chunks(end).End ~= File.End)
+                    %Adjust final chunk end if required
+                    File_Chunks(end).End = File.End;
+                    %Adjust chunk size as per end of file
+                    File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Photon_Byte_Count;
+                end
+            else
+                %Fallback if insignificant number of events to break into chunks for multicore
+                File_Chunks(1).Chunk = 1;
+                File_Chunks(1).Temp_File_Path = fullfile(strcat(Temp_Output_File_Root, filesep, '1.mat'));
+                File_Chunks(1).Start = 1;
+                File_Chunks(1).End = Header.Particles;
+                File_Chunks(1).Events = Header.Particles;
             end
             %Add chunks to header
             Header.File_Chunks = File_Chunks;
@@ -272,7 +285,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header_File_Path = fullfile(Temp_Output_File_Root, 'Header.mat');
             save(Header_File_Path, '-v7.3', '-struct', 'Header');
             %% Read file chunks aand dump them to disk, sorted individual chunks by weighting
-            if(Parpool_Num_Cores > 1)
+            if((Parpool_Num_Cores > 1) && (length(File_Chunks) > 1))
                 %Parallel processing
                 parfor Current_File_Chunk = 1:length(File_Chunks)
                     MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
@@ -294,7 +307,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 Temporary_Files_Removed = rmdir(Temp_Output_File_Root, 's');
             end
         else
-            error(strcat("MCPL file format not found for file: ", File_List(Read_Index).name));
+            error(strcat("MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
         end
     end
 end
@@ -308,11 +321,11 @@ function Header = MCPL_Read_Header(File_ID)
         %Verify file version compatibility
         Format_Version = (File_Header(5)-'0')*100 + (File_Header(6)-'0')*10 + (File_Header(7)-'0');
         if(~any(Format_Version == [2,3]))
-            warning(["MCPL file version may not be compatible with this read script: ", File_List(File_Index).name]);
+            warning(["MCPL file version may not be compatible with this read script: ", MCPL_File_List(File_Index).name]);
         end
         %Warning for version 2 files
         if(Format_Version == 2)
-            warning(["MCPL file version 2 not fully tested for this script, legacy input: ", File_List(File_Index).name]);
+            warning(["MCPL file version 2 not fully tested for this script, legacy input: ", MCPL_File_List(File_Index).name]);
         end
         %Get computer native endian type
         [~, ~, Computer_Endian] = computer;
@@ -333,7 +346,7 @@ function Header = MCPL_Read_Header(File_ID)
             Endian.T32 = 'l';
             Endian.T64 = 'a';
         else
-            error(["Could not determine endianness for file: ", File_List(File_Index).name]);
+            error(["Could not determine endianness for file: ", MCPL_File_List(File_Index).name]);
         end
         Header.Endian = Endian;
         % Cleanup
@@ -473,9 +486,9 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
             PDGCode(Event_Number) = typecast(Byte_String(Header.Byte_Split.PDGCode.Start + Photon_Offset : Header.Byte_Split.PDGCode.End + Photon_Offset), 'int32');
         end
         if(Header.Opt_Userflag)
-            UserFlag(Event_Number) = typecast(Byte_String(Header.Byte_Split.UserFlag.Start + Photon_Offset : Header.Byte_Split.UserFlag.End + Photon_Offset), 'int32');
+            UserFlag(Event_Number) = typecast(Byte_String(Header.Byte_Split.UserFlag.Start + Photon_Offset : Header.Byte_Split.UserFlag.End + Photon_Offset), 'uint32');
         end
-        %% TODO: Adjust endian-ness of byte order
+%% TODO: Adjust endian-ness of byte order
         if(Header.Endian_Switch)
             disp("WARNING: Verify results, system endianness changed");
         end
