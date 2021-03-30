@@ -35,9 +35,21 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 %% Convert MCPL file to MAT file format
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 
+%Perform work on the MAT file
 for Current_Mat_File = 1:length(Mat_File_Path)
-    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File});
+    %Create new filepath for the MAT file to end up in
+    [Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
+    Parent_Directory = fileparts(Directory);
+    Output_Directory = fullfile(Parent_Directory, 'DEBUG');
+    Attempt_Directory_Creation(Output_Directory);
+    MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
+    
+    %Convert MAT file to MCPL file
+    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
+    
+    %Test extraction of MCPL file
+    Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
+    
+    % Compare initial MAT and recreated MAT files match
+    Comparison = visdiff(Mat_File_Path, Mat_File_Path_2{1});
 end
-
-%Test
-MCPL_To_MAT(MCPL_File, Read_Parameters);

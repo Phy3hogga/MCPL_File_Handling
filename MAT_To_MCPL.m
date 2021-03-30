@@ -1,10 +1,28 @@
 %Turn MAT file back into a MCPL file
-function MCPL_File = MAT_To_MCPL(Mat_File_Path)
-    %MCPL_File = fullfile(fileparts(Mat_File_Path), 'test.MCPL');
-    MCPL_File = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\DEBUG\test.MCPL';
+function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
     %% Input handling
-    if(nargin ~= 1)
-        error("Expected single input of MAT file path");
+    if(nargin == 1)
+        %% Formulate a MCPL file path derived from the MAT file path
+        [Directory, Filename, ~] = fileparts(Mat_File_Path);
+        Attempted_MCPL_File_Path = strcat(Directory, filesep, strcat(Filename), '.MCPL');
+        if(isfile(Attempted_MCPL_File_Path))
+            Non_Duplicate_File_Iteration = 1;
+            while(isfile(Attempted_MCPL_File_Path))
+                Attempted_MCPL_File_Path = strcat(Directory, filesep, strcat(Filename),'-', num2str(Non_Duplicate_File_Iteration), '.MCPL');
+                Non_Duplicate_File_Iteration = Non_Duplicate_File_Iteration + 1;
+                if(Non_Duplicate_File_Iteration == 1000)
+                    error("Could not formulate a unique filename for MCPL file that doesn't exist");
+                end
+            end
+        end
+        MCPL_File_Path = Attempted_MCPL_File_Path;
+        warning("Output MCPL filepath not specified");
+        disp(strcat("Filepath : ", Attempted_MCPL_File_Path));
+        clear Directory Filename Attempted_MCPL_File_Path Non_Duplicate_File_Iteration;
+    elseif(nargin == 2)
+        %Do nothing; both inputs fulfilled
+    else
+        error("Expected input of MAT file path");
     end
     %Verify the MAT file exists
     if(isfile(Mat_File_Path))
@@ -71,8 +89,9 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                     
                     %% Create header content
                     %% Open file for writing
-                    File_ID = fopen(MCPL_File, 'w');
+                    File_ID = fopen(MCPL_File_Path, 'w');
                     %Write file header
+                    disp("Writing MCPL Header");
                     File_ID = MCPL_Write_Header(File_ID, Header);
                     %Find memory limits for translating file contents in memory between datatypes
                     [~, System_Memory] = memory;
@@ -104,7 +123,6 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                     %Preallocate variables
                     if(Header.Opt_SinglePrecision)
                         Empty_Byte_Type = single(0);
-                        Byte_
                     else
                         Empty_Byte_Type = double(0);
                     end
@@ -133,8 +151,12 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                     if(Header.Opt_Userflag)
                         UserFlag(Max_Chunk_Events, 1) = uint32(0);
                     end
-                    %Load each chunk from the file
+                    %% Read / Write from the MAT to MCPL file in chunks
+                    %Reading from MAT file
+                    disp("Writing MCPL Data");
                     for Current_File_Chunk = 1:length(File_Chunks)
+                        %Read file chunk
+                        disp(strcat("Loading MAT File Chunk ", num2str(Current_File_Chunk), " / ", num2str(length(File_Chunks))));
                         if(Header.Opt_Polarisation)
                             Px(:) = Mat_File_Reference.Px(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                             Py(:) = Mat_File_Reference.Py(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
@@ -171,8 +193,11 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                         if(Header.Opt_Userflag)
                             UserFlag(:) = Mat_File_Reference.UserFlag(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         end
-                        %
-                        tic
+                        %% Write Data
+                        Progress_Steps = 10;
+                        Progress_Value = 100*linspace(0, 1, Progress_Steps + 1);
+                        %Display starting progress
+                        disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
                         for Current_Line = 1:length(X)
                             if(Header.Opt_Polarisation)
                                 fwrite(File_ID, Px(Current_Line), Header.Byte_Type);
@@ -195,8 +220,11 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
                             if(Header.Opt_Userflag)
                                 fwrite(File_ID, PDGCode(Current_Line), 'uint32');
                             end
+                            %Display progress
+                            if(mod(Current_Line, round(length(X)/Progress_Steps)) == 0)
+                                disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(round(Current_Line/length(X)*Progress_Steps) + 1)), "%"));
+                            end
                         end
-                        toc
                     end
                     %% Close file for writing
                     fclose(File_ID);
@@ -212,8 +240,6 @@ function MCPL_File = MAT_To_MCPL(Mat_File_Path)
     else
         error(strcat("Could not find the specified MAT file: ", Mat_File_Path));
     end
-    %placeholder
-    MCPL_File = MCPL_File;
 end
 
 %% Write MCPL Header

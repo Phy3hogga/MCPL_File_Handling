@@ -842,19 +842,21 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                 %Sort by weight followed by a sub sort of file row (if two weights are identical but are out of order) in the file
                 [Weight_Table, ~] = sortrows(Weight_Table, {'Weight','File_Row'}, {'descend','descend'}, 'MissingPlacement','first');
 
+                %Re-check files that still need reading
+                Read_Values = find(Read_Event == true);
                 %Find the indicies of NaN elements
                 NaN_Elements = find(isnan(Weight_Table.Weight));
                 %Find the linear index in the sorted list of the last entry from each file
                 Sorted_List_Final_Chunk_Position(:) = NaN;
                 for Read_Chunk_Index = 1:length(Read_Values)
-                    File_Line_Check = Current_File_Row(Read_Chunk_Index);
-                    while isnan(Sorted_List_Final_Chunk_Position(Read_Chunk_Index))
+                    File_Line_Check = Current_File_Row(Read_Values(Read_Chunk_Index));
+                    while isnan(Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index)))
                         %Safety catch to stop accidental overwriting
-                        if(isnan(Sorted_List_Final_Chunk_Position(Read_Chunk_Index)))
-                            File_Line_Check_Index = find((Weight_Table.File_Index == Read_Chunk_Index) & (Weight_Table.File_Row == File_Line_Check));
+                        if(isnan(Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index))))
+                            File_Line_Check_Index = find((Weight_Table.File_Index == Read_Values(Read_Chunk_Index)) & (Weight_Table.File_Row == File_Line_Check));
                             %Assign value if not NaN
                             if(~isnan(Weight_Table.Weight(File_Line_Check_Index)))
-                                Sorted_List_Final_Chunk_Position(Read_Chunk_Index) = File_Line_Check_Index;
+                                Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index)) = File_Line_Check_Index;
                             end
                             File_Line_Check = File_Line_Check - 1;
                         end
@@ -940,17 +942,16 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         if(Header.Opt_Userflag)
                             Weight_Table.UserFlag(1:Write_Final_Index) = NaN;
                         end
-                        
-                        %Find all remaining instances of file references to find the read offset for each file
-                        for Current_File = 1:length(Current_File_Row_Offset)
-                            Current_File_Row_Offset(Current_File) = max(0, length(find(Weight_Table.File_Index == Current_File)));
-                        end
                     else
                         %%Disabled warning; not found to be useful
                         %disp("Warning: Final Index larger than Initial Index when combining files.");
                     end
+                    %Find all remaining instances of file references to find the read offset for each file
+                    for Current_File = 1:length(Current_File_Row_Offset)
+                        Current_File_Row_Offset(Current_File) = max(0, length(find(Weight_Table.File_Index == Current_File)));
+                    end
                 else
-                    disp("Warning: Determination of position for the final data from chunk undetermined.");
+                    %disp("Warning: Determination of position for the final data from chunk undetermined.");
                 end
             else
                 %add all results, no sorting needed
