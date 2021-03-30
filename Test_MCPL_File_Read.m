@@ -50,6 +50,6 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     %Test extraction of MCPL file
     Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
     
-    % Compare initial MAT and recreated MAT files match
-    Comparison = visdiff(Mat_File_Path, Mat_File_Path_2{1});
+    % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of file)
+    visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
 end
