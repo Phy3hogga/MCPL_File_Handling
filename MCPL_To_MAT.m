@@ -101,7 +101,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         %% Read file header
         disp("Reading MCPL Header");
         Header = MCPL_Read_Header(File_ID);
-        Endian = Header.Endian;
         %Get size of file
         fseek(File_ID, 0, 'eof');
         File.End = ftell(File_ID);
