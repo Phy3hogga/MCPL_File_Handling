@@ -44,12 +44,33 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Attempt_Directory_Creation(Output_Directory);
     MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
     
-    %Convert MAT file to MCPL file
+    %% Filter data within the MAT file
+    %Position the events land on the detection plane
+    Filters.X.Min = -0.05;
+    Filters.X.Max = 0.05;
+    Filters.Y.Min = -0.05;
+    Filters.Y.Max = 0.05;
+    Filters.Z.Min = -0.05;
+    Filters.Z.Max = 0.05;
+    %Angle from the normal (to Z), must be +ve valued
+    Filters.Angle.Min = 1;
+    Filters.Angle.Max = 5;
+    %Energy [KeV]
+    Filters.Energy.Min = 10;
+    Filters.Energy.Max = 60;
+    %Weighting
+    Filters.Weight.Min = 1;
+    Filters.Weight.Max = 20;
+    %Create filepath for the filtered MAT file
+    Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
+    Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
+    
+    %Convert MAT file back to an MCPL file
     MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
     
     %Test extraction of MCPL file
     Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
     
-    % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of file)
-    visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
+    % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of files)
+    %visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
 end
