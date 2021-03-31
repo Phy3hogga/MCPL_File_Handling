@@ -498,7 +498,11 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     
     %Convert event energy to KeV from MeV (leaving EKinDir_3 unchanged)
     Energy = Energy ./ 1e-3;
-
+    %Convert cm to m
+    X = X ./100;
+    Y = Y ./100;
+    Z = Z ./100;
+    
     %% Sort events by weighting
     if(~Header.Opt_UniversalWeight && Header.Sort_Events_By_Weight)
         [Weight, Sorted_Index] = sort(Weight, 'descend');

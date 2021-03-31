@@ -162,9 +162,10 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                             Py(:) = Mat_File_Reference.Py(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                             Pz(:) = Mat_File_Reference.Pz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         end
-                        X(:) = Mat_File_Reference.X(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
-                        Y(:) = Mat_File_Reference.Y(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
-                        Z(:) = Mat_File_Reference.Z(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
+                        %Convert m to cm
+                        X(:) = Mat_File_Reference.X(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1).*100;
+                        Y(:) = Mat_File_Reference.Y(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1).*100;
+                        Z(:) = Mat_File_Reference.Z(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1).*100;
                         Dx(:) = Mat_File_Reference.Dx(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         Dy(:) = Mat_File_Reference.Dy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
