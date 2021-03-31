@@ -544,7 +544,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         %Get Energy
         Energy = EKinDir_3;
         %Get sign bit
-        Sign_Bit = EKinDir_3(2) < 0;
+        Sign_Bit = EKinDir_3(:) < 0;
         Energy(Sign_Bit) = -Energy(Sign_Bit);
         Dy(Sign_Bit) = 0.0;
     else
@@ -554,7 +554,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         Dz(:) = NaN;
         Energy(:) = NaN;
     end
-    %Convert photon energy to KeV
+    %Convert event energy to KeV from MeV (leaving EKinDir_3 unchanged)
     Energy = Energy ./ 1e-3;
 
     %% Sort events by weighting

@@ -170,6 +170,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         %If replacing time with 0 values
                         if(Replace_Time)
+                            disp("Replacing Time with 0 Values");
                             Time(:) = 0;
                         else
                             Time(:) = Mat_File_Reference.Time(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
@@ -177,8 +178,30 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         %Only need to directly read energy if recalculating EKinDir
                         if(Recalculate_EKinDir)
-                            Energy(:) = Mat_File_Reference.Energy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
-%% TODO RECALCULATE EKinDir
+                            disp("Recalculating EKinDir from Energy and Direction Vectors");
+                            %Read Energy in KeV, translate into MeV
+                            Energy(:) = Mat_File_Reference.Energy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1) .* 1e-3;
+                            %output (x,y,sign(z)) - default
+                            EKinDir_1(:) = Dx;
+                            EKinDir_2(:) = Dy;
+                            EKinDir_3(:) = Dz;
+                            Abs_X = abs(Dx);
+                            Abs_Y = abs(Dy);
+                            Condition_1 = abs(Dz) < max(Abs_X, Abs_Y);
+                            %Invert Z where appropriate conditions are met
+                            Inv_Z(length(Dz)) = Inf;
+                            Inv_Z(Condition_1 & ~Floating_Point_Equal(Dz(:),0)) = 1./Dz(Condition_1 & ~Floating_Point_Equal(Dz(:),0));
+                            Condition_2 = Abs_X >= Abs_Y;
+                            %output (1/z,y,sign(x))
+                            EKinDir_1(Condition_1 & Condition_2) = Inv_Z(Condition_1 & Condition_2);
+                            EKinDir_2(Condition_1 & Condition_2) = Dy(Condition_1 & Condition_2);
+                            EKinDir_3(Condition_1 & Condition_2) = Dx(Condition_1 & Condition_2);
+                            %output (x,1/z,sign(y))
+                            EKinDir_1(Condition_1 & ~Condition_2) = Dx(Condition_1 & ~Condition_2);
+                            EKinDir_2(Condition_1 & ~Condition_2) = Inv_Z(Condition_1 & ~Condition_2);
+                            EKinDir_3(Condition_1 & ~Condition_2) = Dy(Condition_1 & ~Condition_2);
+                            %Encode the sign bit into the energy value
+                            EKinDir_3(:) = sign(EKinDir_3(:)) .* Energy(:);
                         else
                             EKinDir_1(:) = Mat_File_Reference.EKinDir_1(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                             EKinDir_2(:) = Mat_File_Reference.EKinDir_2(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
