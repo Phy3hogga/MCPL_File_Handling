@@ -235,13 +235,21 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
         clear Filter_Min_Max Current_Active_Filter;
         clear Size_1 Size_2 Filtered_Mat_Directory_Path Remove_Filters Data;
         
-        %Create filtered MAT file
-        Filtered_Mat_File_Reference = matfile(Filtered_Mat_File_Path);
-        Filtered_Mat_File_Reference.Properties.Writable = true;
-        %Copy valid data
-        for Current_File_Row = 1:length(Allowed_Index_List)
-            
+        %% Output
+        %Check valid data remains
+        if(sum(Allowed_Index_List) == 0)
+            warning("No data remains after filtering, skipping writing file. Returning raw data file as output.");
+            Filtered_Mat_File_Path = Mat_File_Path;
+        else
+            %Create filtered MAT file
+            Filtered_Mat_File_Reference = matfile(Filtered_Mat_File_Path);
+            Filtered_Mat_File_Reference.Properties.Writable = true;
+            %Write valid data only
+            for Current_File_Row = 1:length(Allowed_Index_List)
+                
+            end
         end
+
     else
         error("Filter_MCPL_Mat_Data: MAT file not found");
     end

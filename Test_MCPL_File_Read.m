@@ -54,13 +54,13 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Filters.Z.Max = 0.05;
     %Angle from the normal (to Z), must be +ve valued
     Filters.Angle.Min = 1;
-    Filters.Angle.Max = 5;
+    Filters.Angle.Max = 45;
     %Energy [KeV]
     Filters.Energy.Min = 10;
     Filters.Energy.Max = 60;
     %Weighting
     Filters.Weight.Min = 1;
-    Filters.Weight.Max = 20;
+    Filters.Weight.Max = 30;
     %Create filepath for the filtered MAT file
     Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
     Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
@@ -72,5 +72,5 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
     
     % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of files)
-    %visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
+    visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
 end
