@@ -158,6 +158,7 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
         Allowed_Index_List = ones(Size_1(1), 1, 'logical');
         
         %% Generic sense-checks for structure inputs, then retain indicies of valid data meeting all criteria
+        disp("Filter_MCPL_MAT_Data : Note one event can be filtered out by multiple individual conditions.");
         for Current_Active_Filter = 1:length(Active_Filters)
             if(isstruct(Filters.(Active_Filters{Current_Active_Filter})))
                 %Find Min and Max fields
@@ -241,6 +242,7 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
             warning("No data remains after filtering, skipping writing file. Returning raw data file as output.");
             Filtered_Mat_File_Path = Mat_File_Path;
         else
+            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(length(Allowed_Index_List) - sum(Allowed_Index_List)), " of ", num2str(length(Allowed_Index_List)), " Events"));
             %Create filtered MAT file
             Filtered_Mat_File_Reference = matfile(Filtered_Mat_File_Path);
             Filtered_Mat_File_Reference.Properties.Writable = true;

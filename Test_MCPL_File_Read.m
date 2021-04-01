@@ -10,7 +10,7 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %64 bit data for testing
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
-File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
+%File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
@@ -20,6 +20,7 @@ RAR_Parameters.Overwrite_Mode = true;
 
 %% Parameters for MCPL processing to MAT file
 %If events are sorted in descending order of weight with the most significant events at the top of the file. (true = sort)
+%% TODO : Chunk combination not sorted
 Read_Parameters.Sort_Events_By_Weight = true;
 %If events with exactly 0 weighting (represent no photons) are to be removed (true = removed)
 Read_Parameters.Remove_Zero_Weights = true;
@@ -46,21 +47,21 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     
     %% Filter data within the MAT file
     %Position the events land on the detection plane
-    Filters.X.Min = -0.05;
-    Filters.X.Max = 0.05;
-    Filters.Y.Min = -0.05;
-    Filters.Y.Max = 0.05;
-    Filters.Z.Min = -0.05;
-    Filters.Z.Max = 0.05;
+    Filters.X.Min = -0.04;
+    Filters.X.Max = 0.04;
+    Filters.Y.Min = -0.04;
+    Filters.Y.Max = 0.04;
+    %Filters.Z.Min = 0;
+    %Filters.Z.Max = 1;
     %Angle from the normal (to Z), must be +ve valued
-    Filters.Angle.Min = 1;
+    Filters.Angle.Min = 0;
     Filters.Angle.Max = 45;
     %Energy [KeV]
-    Filters.Energy.Min = 10;
-    Filters.Energy.Max = 60;
+    Filters.Energy.Min = 0;
+    Filters.Energy.Max = 130;
     %Weighting
-    Filters.Weight.Min = 1;
-    Filters.Weight.Max = 30;
+    %Filters.Weight.Min = 0.05;
+    %Filters.Weight.Max = 35;
     %Create filepath for the filtered MAT file
     Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
     Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
