@@ -223,7 +223,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                                 fwrite(File_ID, PDGCode(Current_Line), 'int32');
                             end
                             if(Header.Opt_Userflag)
-                                fwrite(File_ID, PDGCode(Current_Line), 'uint32');
+                                fwrite(File_ID, UserFlag(Current_Line), 'uint32');
                             end
                             %Display progress
                             if(mod(Current_Line, round(length(X)/Progress_Steps)) == 0)
