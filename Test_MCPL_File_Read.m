@@ -12,6 +12,13 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %64 bit dataset (small file)
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 
+
+%Prop_Z0
+File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
+%No PROP_Z0
+%File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143359\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
+
+
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
 RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';

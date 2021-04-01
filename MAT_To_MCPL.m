@@ -201,6 +201,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         %% Write Data
                         Progress_Steps = 10;
                         Progress_Value = 100*linspace(0, 1, Progress_Steps + 1);
+                        Progress_Count = 1;
                         %Display starting progress
                         disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
                         for Current_Line = 1:length(X)
@@ -227,8 +228,13 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                             end
                             %Display progress
                             if(mod(Current_Line, round(length(X)/Progress_Steps)) == 0)
+                                Progress_Count = Progress_Count + 1;
                                 disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(round(Current_Line/length(X)*Progress_Steps) + 1)), "%"));
                             end
+                        end
+                        %Catch case that final index doesn't get called (due to rounding errors)
+                        if(Progress_Count ~= length(Progress_Value))
+                            disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(end), "%"));
                         end
                     end
                     %% Close file for writing
