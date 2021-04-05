@@ -559,42 +559,20 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Weight_Chunk = floor(Max_Chunk_Events / length(Chunk_Matfile_References));
     
     %Create table for sorting weights
-    Table_Fields = {};
-    Table_Datatypes = {};
-    Table_Fields{end + 1} = 'File_Index';
-    Table_Datatypes{end + 1} = 'int64';
-    Table_Fields{end + 1} = 'File_Row';
-    Table_Datatypes{end + 1} = 'int64';
+    Table_Fields = {'File_Index', 'File_Row'};
+    Table_Datatypes = {'int64', 'int64'};
     if(Header.Opt_Polarisation)
-        Table_Fields{end + 1} = 'Px';
-        Table_Datatypes{end + 1} = Header.Byte_Type;
-        Table_Fields{end + 1} = 'Py';
-        Table_Datatypes{end + 1} = Header.Byte_Type;
-        Table_Fields{end + 1} = 'Px';
-        Table_Datatypes{end + 1} = Header.Byte_Type;
+        Table_Fields = [Table_Fields, 'Px', 'Py', 'Pz'];
+        Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
     end
-    Table_Fields{end + 1} = 'X';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Y';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Z';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Dx';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Dy';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Dz';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Energy';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'Time';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'EKinDir_1';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'EKinDir_2';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
-    Table_Fields{end + 1} = 'EKinDir_3';
-    Table_Datatypes{end + 1} = Header.Byte_Type;
+    Table_Fields = [Table_Fields, 'X', 'Y', 'Z'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'Dx', 'Dy', 'Dz'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'Energy', 'Time'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'EKinDir_1', 'EKinDir_2', 'EKinDir_3'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
     if(~Header.Opt_UniversalWeight)
         Table_Fields{end + 1} = 'Weight';
         Table_Datatypes{end + 1} = Header.Byte_Type;
