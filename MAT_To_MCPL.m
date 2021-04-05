@@ -234,7 +234,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         end
                         %Catch case that final index doesn't get called (due to rounding errors)
                         if(Progress_Count ~= length(Progress_Value))
-                            disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(end), "%"));
+                            disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(end), "%")));
                         end
                     end
                     %% Close file for writing
