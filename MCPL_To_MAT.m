@@ -101,6 +101,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         %% Read file header
         disp("Reading MCPL Header");
         Header = MCPL_Read_Header(File_ID);
+        %Error correction for MCPL files with universal weight flag set
+        if(Header.Opt_UniversalWeight)
+            if(Header.Sort_Events_By_Weight)
+                Header.Sort_Events_By_Weight = false;
+                disp("MCPL_To_MAT : Can't sort events by weight due to universal weighting.");
+            end
+        end
         %Get size of file
         fseek(File_ID, 0, 'eof');
         File.End = ftell(File_ID);
