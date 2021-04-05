@@ -533,13 +533,13 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     %% Save file chunk to a temporary file for combination later
     save(File_Chunk.Temp_File_Path, '-v7.3', 'Weight', 'Energy', 'Time', 'X', 'Y', 'Z', 'Dx', 'Dy', 'Dz', 'EKinDir_1', 'EKinDir_2', 'EKinDir_3');
     if(Header.Opt_Polarisation)
-        save(File_Chunk.Temp_File_Path, '-v7.3', '-append', 'Px', 'Py', 'Pz');
+        save(File_Chunk.Temp_File_Path, '-append', 'Px', 'Py', 'Pz');
     end
     if(Header.Opt_UniversalPDGCode == 0)
-        save(File_Chunk.Temp_File_Path, '-v7.3', '-append', 'PDGCode');
+        save(File_Chunk.Temp_File_Path, '-append', 'PDGCode');
     end
     if(Header.Opt_Userflag)
-        save(File_Chunk.Temp_File_Path, '-v7.3', '-append', 'UserFlag');
+        save(File_Chunk.Temp_File_Path, '-append', 'UserFlag');
     end
 end
 
