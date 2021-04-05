@@ -785,8 +785,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         end
                     end
                 end
-                %Sort by weight followed by a sub sort of file row (if two weights are identical but are out of order) in the file
-                [Weight_Table, ~] = sortrows(Weight_Table, {'Weight','File_Row'}, {'descend','descend'}, 'MissingPlacement','first');
+                %Sort by weight followed by other elements a sub sort of file row (if two weights are identical but are out of order) in the file
+                [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'Dx', 'Dy', 'Dz', 'X', 'Y', 'Z','File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement','first');
 
                 %Re-check files that still need reading
                 Read_Values = find(Read_Event == true);
