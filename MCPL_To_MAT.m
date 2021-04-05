@@ -511,8 +511,19 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     Z = Z ./100;
     
     %% Sort events by weighting
-    if(~Header.Opt_UniversalWeight && Header.Sort_Events_By_Weight)
-        [Weight, Sorted_Index] = sort(Weight, 'descend');
+    if(Header.Sort_Events_By_Weight)
+        %Insert relevant data into table for sorting (ignoring other fields)
+        Event_Table = Create_Event_Table(Header, File_Chunk.Events);
+        Event_Table.X = X;
+        Event_Table.Y = Y;
+        Event_Table.Z = Z;
+        Event_Table.Weight = Weight;
+        Event_Table.Energy = Energy;
+        Event_Table.File_Row = (1:1:File_Chunk.Events)';
+        %Sort data
+        [~, Sorted_Index] = sortrows(Event_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+        %sort individual data fields
+        Weight = Weight(Sorted_Index);
         Energy = Energy(Sorted_Index);
         Time = Time(Sorted_Index);
         X = X(Sorted_Index);
@@ -573,62 +584,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     
     %Create table for sorting weights
-    Table_Fields = {'File_Index', 'File_Row'};
-    Table_Datatypes = {'int64', 'int64'};
-    if(Header.Opt_Polarisation)
-        Table_Fields = [Table_Fields, 'Px', 'Py', 'Pz'];
-        Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    end
-    Table_Fields = [Table_Fields, 'X', 'Y', 'Z'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'Dx', 'Dy', 'Dz'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'Energy', 'Time'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'EKinDir_1', 'EKinDir_2', 'EKinDir_3'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    if(~Header.Opt_UniversalWeight)
-        Table_Fields{end + 1} = 'Weight';
-        Table_Datatypes{end + 1} = Header.Byte_Type;
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Table_Fields{end + 1} = 'PDGCode';
-        Table_Datatypes{end + 1} = 'int32';
-    end
-    if(Header.Opt_Userflag)
-        Table_Fields{end + 1} = 'UserFlag';
-        Table_Datatypes{end + 1} = 'uint32';
-    end
-    Weight_Table = table('Size', [Weight_Table_Length, length(Table_Fields)], 'VariableTypes', Table_Datatypes);
-    Weight_Table.Properties.VariableNames = Table_Fields;
-    %Pre-fill table with NaN values
-    Weight_Table.File_Index(:) = NaN;
-    Weight_Table.File_Row(:) = NaN;
-    if(Header.Opt_Polarisation)
-        Weight_Table.Px(:) = NaN;
-        Weight_Table.Py(:) = NaN;
-        Weight_Table.Pz(:) = NaN;
-    end
-    Weight_Table.X(:) = NaN;
-    Weight_Table.Y(:) = NaN;
-    Weight_Table.Z(:) = NaN;
-    Weight_Table.Dx(:) = NaN;
-    Weight_Table.Dy(:) = NaN;
-    Weight_Table.Dz(:) = NaN;
-    Weight_Table.Energy(:) = NaN;
-    Weight_Table.Time(:) = NaN;
-    Weight_Table.EKinDir_1(:) = NaN;
-    Weight_Table.EKinDir_2(:) = NaN;
-    Weight_Table.EKinDir_3(:) = NaN;
-    if(~Header.Opt_UniversalWeight)
-        Weight_Table.Weight(:) = NaN;
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Weight_Table.PDGCode(:) = NaN;
-    end
-    if(Header.Opt_Userflag)
-        Weight_Table.UserFlag(:) = NaN;
-    end
+    Weight_Table = Create_Event_Table(Header, Weight_Table_Length);
     %Store relative position of each chunk in the weight table
     Weight_Table_Position = 1;
     %Track current row within the file
@@ -753,8 +709,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                     Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
                 end
                 %Sort by weight followed by other elements a sub sort of file row (if two weights are identical but are out of order) in the file
-                [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'Dx', 'Dy', 'Dz', 'X', 'Y', 'Z','File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement','first');
-
+                [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+               
                 %Re-check files that still need reading
                 Read_Values = find(Read_Event == true);
                 %Find the indicies of NaN elements
@@ -953,6 +909,67 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Header.Particles = File_Write_Index_End;
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
     Merged_File_Reference.Header = Header;
+end
+
+%% Creates and allocates memory for an event table (initiates with NaN variables)
+function Table = Create_Event_Table(Header, Number_Of_Events)
+%Create table for sorting weights
+    Table_Fields = {'File_Index', 'File_Row'};
+    Table_Datatypes = {'int64', 'int64'};
+    if(Header.Opt_Polarisation)
+        Table_Fields = [Table_Fields, 'Px', 'Py', 'Pz'];
+        Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    end
+    Table_Fields = [Table_Fields, 'X', 'Y', 'Z'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'Dx', 'Dy', 'Dz'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'Energy', 'Time'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type];
+    Table_Fields = [Table_Fields, 'EKinDir_1', 'EKinDir_2', 'EKinDir_3'];
+    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
+    if(~Header.Opt_UniversalWeight)
+        Table_Fields{end + 1} = 'Weight';
+        Table_Datatypes{end + 1} = Header.Byte_Type;
+    end
+    if(Header.Opt_UniversalPDGCode == 0)
+        Table_Fields{end + 1} = 'PDGCode';
+        Table_Datatypes{end + 1} = 'int32';
+    end
+    if(Header.Opt_Userflag)
+        Table_Fields{end + 1} = 'UserFlag';
+        Table_Datatypes{end + 1} = 'uint32';
+    end
+    Table = table('Size', [Number_Of_Events, length(Table_Fields)], 'VariableTypes', Table_Datatypes);
+    Table.Properties.VariableNames = Table_Fields;
+    %Pre-fill table with NaN values
+    Table.File_Index(:) = NaN;
+    Table.File_Row(:) = NaN;
+    if(Header.Opt_Polarisation)
+        Table.Px(:) = NaN;
+        Table.Py(:) = NaN;
+        Table.Pz(:) = NaN;
+    end
+    Table.X(:) = NaN;
+    Table.Y(:) = NaN;
+    Table.Z(:) = NaN;
+    Table.Dx(:) = NaN;
+    Table.Dy(:) = NaN;
+    Table.Dz(:) = NaN;
+    Table.Energy(:) = NaN;
+    Table.Time(:) = NaN;
+    Table.EKinDir_1(:) = NaN;
+    Table.EKinDir_2(:) = NaN;
+    Table.EKinDir_3(:) = NaN;
+    if(~Header.Opt_UniversalWeight)
+        Table.Weight(:) = NaN;
+    end
+    if(Header.Opt_UniversalPDGCode == 0)
+        Table.PDGCode(:) = NaN;
+    end
+    if(Header.Opt_Userflag)
+        Table.UserFlag(:) = NaN;
+    end
 end
 
 %% Removes all zero weighted data from an event table
