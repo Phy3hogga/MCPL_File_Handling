@@ -703,7 +703,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                 %Reset write position in Weight_Table to the first row (circular buffer)
                 Weight_Table_Position = 1;
 
-                %Remove weight events with exactly 0.0 weighting
+                %Remove weight events with exactly 0 weighting
                 if(Header.Remove_Zero_Weights)
                     [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
                     Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
@@ -826,10 +826,80 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         end
     else
         %% Dump files directly to disk in the order of the original MCPL file
+        for Current_File = 1:length(Chunk_Files)
+            %% Load data into table
+            if(Header.Opt_Polarisation)
+                Weight_Table.Px(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Px(:, 1);
+                Weight_Table.Py(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Py(:, 1);
+                Weight_Table.Pz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Pz(:, 1);
+            end
+            Weight_Table.X(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.X(:, 1);
+            Weight_Table.Y(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Y(:, 1);
+            Weight_Table.Z(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Z(:, 1);
+            Weight_Table.Dx(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dx(:, 1);
+            Weight_Table.Dy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dy(:, 1);
+            Weight_Table.Dz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dz(:, 1);
+            Weight_Table.Energy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Energy(:, 1);
+            Weight_Table.Time(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Time(:, 1);
+            Weight_Table.EKinDir_1(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_1(:, 1);
+            Weight_Table.EKinDir_2(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_2(:, 1);
+            Weight_Table.EKinDir_3(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_3(:, 1);
+            if(~Header.Opt_UniversalWeight)
+                Weight_Table.Weight(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Weight(:, 1);
+            end
+            if(Header.Opt_UniversalPDGCode == 0)
+                Weight_Table.PDGCode(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.PDGCode(:, 1);
+            end
+            if(Header.Opt_Userflag)
+                Weight_Table.UserFlag(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.UserFlag(:, 1);
+            end
+            %Remove weight events with exactly 0 weighting
+            if(Header.Remove_Zero_Weights)
+                [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
+                Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
+            end
+            %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory
+            NaN_Elements = find(isnan(Weight_Table.X) | isnan(Weight_Table.Y) | isnan(Weight_Table.Z));
+            Weight_Table(NaN_Elements,:) = [];
+            %% Write data to file
+            File_Write_Index_End = File_Write_Index + height(Weight_Table) - 1;
+            if(Header.Opt_Polarisation)
+                Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(:);
+                Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(:);
+                Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(:);
+            end
+            Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(:);
+            Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(:);
+            Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(:);
+            Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(:);
+            Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(:);
+            Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(:);
+            Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(:);
+            Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(:);
+            Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
+            Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
+            Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
+            if(~Header.Opt_UniversalWeight)
+                Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(:);
+            end
+            if(Header.Opt_UniversalPDGCode == 0)
+                Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(:);
+            end
+            if(Header.Opt_Userflag)
+                Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(:);
+            end
+            %Increment for next write pass
+            File_Write_Index = File_Write_Index_End + 1;
+        end
     end
     %% Write final contents of table (if any data remains)
+    %Remove weight events with exactly 0 weighting
+    if(Header.Remove_Zero_Weights)
+        [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
+        Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
+    end
     if(Header.Sort_Events_By_Weight)
-        [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'Dx', 'Dy', 'Dz', 'X', 'Y', 'Z','File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement','first');
+        [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
     end
     %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory
     NaN_Elements = find(isnan(Weight_Table.X) | isnan(Weight_Table.Y) | isnan(Weight_Table.Z));
@@ -839,9 +909,9 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %Only write remaining data to the table if data remains from the sorting process
     if(File_Write_Index_End >= File_Write_Index)
         if(Header.Opt_Polarisation)
-            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
-            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
-            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(:);
+            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(:);
+            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(:);
+            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(:);
         end
         Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(:);
         Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(:);
@@ -1009,6 +1079,7 @@ function [Weight_Table, Removed_Zero_Count] = Remove_Zero_Weights(Weight_Table, 
         Removed_Zero_Count = 0;
     end
 end
+
 %% REFERENCE FOR READING GZIP FROM FILESTREAM; UNUSED BUT POTENITAL UPGRADE IN FUTURE
 %% https://www.cs.usfca.edu/~parrt/doc/java/JavaIO-notes.pdf
 % File_Str = javaObject('java.io.FileInputStream',File_Path);
