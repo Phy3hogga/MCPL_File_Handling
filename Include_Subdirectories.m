@@ -10,7 +10,7 @@ function Valid_Input = Include_Subdirectories(Directory_List, Parent_Function_Re
         case 0
             %use default list
             disp("No Directories supplied, using default list.");
-            Directory_List = {'MCX_Trace_Functions','QOL_Functions','Physical_Experiments','Geometric'};
+            Directory_List = {'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR'};
             Using_Parent_Function_Relative_Directory = false;
         case 1
             %use user input

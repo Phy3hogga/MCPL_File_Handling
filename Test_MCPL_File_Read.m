@@ -2,7 +2,7 @@ clear all;
 close all;
 
 %Include directories to external GIT libraries
-Include_Subdirectories({'Parpool','WinRAR','File_Operations', 'Input_Validation', 'Data_Operations'});
+Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR'});
 
 %% Test Data
 %32 bit data for testing
@@ -10,11 +10,11 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %64 bit data for testing
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
-%File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
+File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 
 
 %Prop_Z0
-File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
+%File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
 %No PROP_Z0
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143359\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
 
