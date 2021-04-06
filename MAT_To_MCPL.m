@@ -1,7 +1,8 @@
 %Turn MAT file back into a MCPL file
-function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
+function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Bar)
     %% Input handling
     if(nargin == 1)
+        
         %% Formulate a MCPL file path derived from the MAT file path
         [Directory, Filename, ~] = fileparts(Mat_File_Path);
         Attempted_MCPL_File_Path = strcat(Directory, filesep, strcat(Filename), '.MCPL');
@@ -11,18 +12,23 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                 Attempted_MCPL_File_Path = strcat(Directory, filesep, strcat(Filename),'-', num2str(Non_Duplicate_File_Iteration), '.MCPL');
                 Non_Duplicate_File_Iteration = Non_Duplicate_File_Iteration + 1;
                 if(Non_Duplicate_File_Iteration == 1000)
-                    error("Could not formulate a unique filename for MCPL file that doesn't exist");
+                    error("MAT_To_MCPL : Could not formulate a unique filename for MCPL file that doesn't exist");
                 end
             end
         end
         MCPL_File_Path = Attempted_MCPL_File_Path;
-        warning("Output MCPL filepath not specified");
+        warning("MAT_To_MCPL : Output MCPL filepath not specified");
         disp(strcat("Filepath : ", Attempted_MCPL_File_Path));
         clear Directory Filename Attempted_MCPL_File_Path Non_Duplicate_File_Iteration;
     elseif(nargin == 2)
         %Do nothing; both inputs fulfilled
+    elseif(nargin == 3)
+        
     else
-        error("Expected input of MAT file path");
+        error("MAT_To_MCPL : Expected input of MAT file path");
+    end
+    if(~exist('Progress_Bar', 'var'))
+        Progress_Bar = false;
     end
     %Verify the MAT file exists
     if(isfile(Mat_File_Path))
@@ -30,7 +36,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
         try
             Mat_File_Variables = who('-file', Mat_File_Path);
         catch
-            error(strcat("Invalid MAT file format: ", Mat_File_Path));
+            error(strcat("MAT_To_MCPL : Invalid MAT file format: ", Mat_File_Path));
         end
         %Verify the header exists
         if(ismember({'Header'}, Mat_File_Variables))
@@ -50,7 +56,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         Field_List(length(Field_List) + 1) = {'Energy'};
                         Recalculate_EKinDir = true;
                     else
-                        error(strcat("Insufficient Data to calculate EKinDir from Energy and vector components for MCPL file: ", Mat_File_Path));
+                        error(strcat("MAT_To_MCPL : Insufficient Data to calculate EKinDir from Energy and vector components for MCPL file: ", Mat_File_Path));
                     end
                 end
                 %Verify Time variable exists (will fill with 0's if it doesn't exist)
@@ -75,24 +81,53 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                     Number_Of_Events = max(min(Size_1(:)),min(Size_2(:)));
                     clear Size_1 Size_2;
                     
+                    %% Prepare progress bar
+                    if(Progress_Bar)
+                        Progress(1).Title = 'Writing Header';
+                        Progress(1).Colour = 'r';
+                        Progress(1).Progress = 0;
+                        Progress(2).Title = '';
+                        Progress(2).Colour = 'r';
+                        Progress(2).Progress = 0;
+                        Progress_Figure = Multiple_Wait_Bar(Progress);
+                    end
+                    
                     %% Load the file header
                     Header = load(Mat_File_Path, '-mat', 'Header');
                     Header = Header.Header;
+                    
+                    %Update progress bar
+                    if(Progress_Bar)
+                        Progress(1).Progress = 0.5;
+                        Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                    else
+                        disp("MAT_To_MCPL : Writing MCPL Header");
+                    end
+                    
                     %Verify the number of events matches the length of the data
                     if(Number_Of_Events ~= Header.Particles)
-                        disp(strcat("Warning: Number of events in header disagrees with the quantity of data in MAT file: ", Mat_File_Path));
+                        disp(strcat("MAT_To_MCPL Warning: Number of events in header disagrees with the quantity of data in MAT file: ", Mat_File_Path));
                         disp(strcat("Number of Events in Header: ", num2str(Header.Particles)));
                         disp(strcat("Number of Events in Data: ", num2str(Number_Of_Events)));
                         disp(strcat("Number of Events that will be Translated to MCPL: ", num2str(min(Number_Of_Events, Header.Particles))));
                         Number_Of_Events = Header.Particles;
                     end
-                    
+
                     %% Create header content
                     %% Open file for writing
                     File_ID = fopen(MCPL_File_Path, 'w');
                     %Write file header
-                    disp("Writing MCPL Header");
                     File_ID = MCPL_Write_Header(File_ID, Header);
+                    
+                    %Update progress bar
+                    if(Progress_Bar)
+                        Progress(1).Progress = 0.5;
+                        Progress(2).Progress = 1;
+                        Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                    else
+                        disp("MAT_To_MCPL : Writing MCPL Header");
+                    end
+                    
                     %Find memory limits for translating file contents in memory between datatypes
                     [~, System_Memory] = memory;
                     Interval = floor((System_Memory.PhysicalMemory.Available * 0.35) / (Header.Photon_Byte_Count + (3 * Header.Byte_Size)));
@@ -151,12 +186,31 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                     if(Header.Opt_Userflag)
                         UserFlag(Max_Chunk_Events, 1) = uint32(0);
                     end
+                    
+                    %Update progress bar
+                    if(Progress_Bar)
+                        %Normalize the chunk array
+                        Chunk_Progress = Multiple_Wait_Bar_Normalize(1:length(File_Chunks));
+                        Progress(1).Progress = 0.5;
+                        Progress(2).Progress = 1;
+                        Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                    else
+                        disp("MAT_To_MCPL : Writing MCPL Data");
+                    end
+                    
                     %% Read / Write from the MAT to MCPL file in chunks
                     %Reading from MAT file
-                    disp("Writing MCPL Data");
                     for Current_File_Chunk = 1:length(File_Chunks)
                         %Read file chunk
-                        disp(strcat("Loading MAT File Chunk ", num2str(Current_File_Chunk), " / ", num2str(length(File_Chunks))));
+                        if(Progress_Bar)
+                            Progress(1).Title = 'File Chunk';
+                            Progress(2).Title = 'Reading Data';
+                            Progress(1).Progress = Chunk_Progress(Current_File_Chunk);
+                            Progress(2).Progress = 0;
+                            Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                        else
+                            disp(strcat("MAT_To_MCPL : Loading MAT File Chunk ", num2str(Current_File_Chunk), " / ", num2str(length(File_Chunks))));
+                        end
                         if(Header.Opt_Polarisation)
                             Px(:) = Mat_File_Reference.Px(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                             Py(:) = Mat_File_Reference.Py(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
@@ -171,7 +225,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         %If replacing time with 0 values
                         if(Replace_Time)
-                            disp("Replacing Time with 0 Values");
+                            disp("MAT_To_MCPL : Replacing Time with 0 Values");
                             Time(:) = 0;
                         else
                             Time(:) = Mat_File_Reference.Time(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
@@ -179,7 +233,7 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                         Dz(:) = Mat_File_Reference.Dz(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         %Only need to directly read energy if recalculating EKinDir
                         if(Recalculate_EKinDir)
-                            disp("Recalculating EKinDir from Energy and Direction Vectors");
+                            disp("MAT_To_MCPL : Recalculating EKinDir from Energy and Direction Vectors");
                             %Read Energy in KeV, translate into MeV
                             Energy(:) = Mat_File_Reference.Energy(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1) .* 1e-3;
                             %Unpack EKinDir
@@ -199,11 +253,19 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                             UserFlag(:) = Mat_File_Reference.UserFlag(File_Chunks(Current_File_Chunk).Start:File_Chunks(Current_File_Chunk).End, 1);
                         end
                         %% Write Data
-                        Progress_Steps = 10;
+                        Progress_Steps = 50;
                         Progress_Value = 100*linspace(0, 1, Progress_Steps + 1);
                         Progress_Count = 1;
                         %Display starting progress
-                        disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
+                        if(Progress_Bar)
+                            %Normalize the progress array
+                            Progress_Value = Multiple_Wait_Bar_Normalize(Progress_Value);
+                            Progress(2).Title = 'Writing Data';
+                            Progress(2).Progress = 0;
+                            Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                        else
+                            disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
+                        end
                         for Current_Line = 1:length(X)
                             if(Header.Opt_Polarisation)
                                 fwrite(File_ID, Px(Current_Line), Header.Byte_Type);
@@ -229,27 +291,37 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path)
                             %Display progress
                             if(mod(Current_Line, round(length(X)/Progress_Steps)) == 0)
                                 Progress_Count = Progress_Count + 1;
-                                disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(round(Current_Line/length(X)*Progress_Steps) + 1)), "%"));
+                                if(Progress_Bar)
+                                    Progress(2).Progress = Progress_Value(Progress_Count);
+                                    Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                                else
+                                    disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(round(Current_Line/length(X)*Progress_Steps) + 1)), "%"));
+                                end
                             end
                         end
                         %Catch case that final index doesn't get called (due to rounding errors)
                         if(Progress_Count ~= length(Progress_Value))
-                            disp(strcat("Chunk Write Progress : ", num2str(Progress_Value(end), "%")));
+                            if(Progress_Bar)
+                                Progress(2).Progress = Progress_Value(Progress_Count);
+                                Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
+                            else
+                                disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(end), "%")));
+                            end
                         end
                     end
                     %% Close file for writing
                     fclose(File_ID);
                 else
-                    error(strcat("Unclear data correspondance between variables (different length) unable to compile MCPL file: ", Mat_File_Path));
+                    error(strcat("MAT_To_MCPL : Unclear data correspondance between variables (different length) unable to compile MCPL file: ", Mat_File_Path));
                 end
             else
-                error(strcat("Missing Data from MAT file to compile MCPL file: ", Mat_File_Path));
+                error(strcat("MAT_To_MCPL : Missing Data from MAT file to compile MCPL file: ", Mat_File_Path));
             end
         else
-            error(strcat("Missing Header from MAT file to compile MCPL file: ", Mat_File_Path));
+            error(strcat("MAT_To_MCPL : Missing Header from MAT file to compile MCPL file: ", Mat_File_Path));
         end
     else
-        error(strcat("Could not find the specified MAT file: ", Mat_File_Path));
+        error(strcat("MAT_To_MCPL : Could not find the specified MAT file: ", Mat_File_Path));
     end
 end
 
@@ -263,7 +335,7 @@ function File_ID = MCPL_Write_Header(File_ID, Header)
     elseif(strcmpi(Computer_Endian, 'L'))
         Endian_Char = 'L';
     else
-        error(strcat("Could not determine system endianness to write file : ", Mat_File_Path));
+        error(strcat("MAT_To_MCPL : Could not determine system endianness to write file : ", Mat_File_Path));
     end
     %Number of comments and blobs
     N_Comments = length(Header.Comments);
