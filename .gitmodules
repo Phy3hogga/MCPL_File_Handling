@@ -13,3 +13,6 @@
 [submodule "Data_Operations.git"]
 	path = Data_Operations
 	url = git@github.com:Phy3hogga/Data_Operations.git
+[submodule "Waitbar.git"]
+	path = Waitbar
+	url = git@github.com:Phy3hogga/Waitbar.git
