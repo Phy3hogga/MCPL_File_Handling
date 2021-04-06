@@ -266,7 +266,6 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                         else
                             disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
                         end
-                        tic
                         for Current_Line = 1:length(X)
                             %Write each event to MCPL file format
                             if(Header.Opt_Polarisation)
@@ -293,7 +292,6 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                                 end
                             end
                         end
-                        toc
                         %Catch case that final index doesn't get called (due to rounding errors)
                         if(Progress_Count ~= length(Progress_Value))
                             if(Progress_Bar)
