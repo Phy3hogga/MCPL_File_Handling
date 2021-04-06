@@ -39,7 +39,7 @@ Read_Parameters.Skip_Uncompress = false;
 Read_Parameters.Parpool_Num_Cores = 6;
 %Add RAR Parameters to the Read Parameters
 Read_Parameters.RAR_Parameters = RAR_Parameters;
-
+Display_Write_Progress = true;
 %% Convert MCPL file to MAT file format
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 
@@ -74,7 +74,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     %Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
     
     %Convert MAT file back to an MCPL file
-    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
+    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath, Display_Write_Progress);
     
     %Test extraction of MCPL file
     Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
@@ -82,3 +82,13 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of files)
     visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
 end
+
+% DEBUG
+MF_1 = matfile(Mat_File_Path{1});
+MF_2 = matfile(Mat_File_Path_2{1});
+I = find(Floating_Point_Equal(MF_1.Energy, MF_2.Energy) == 0);
+Energy_1 = MF_1.Energy(:,1);
+Energy_2 = MF_2.Energy(:,1);
+A = sort(Energy_1(I, 1));
+B = sort(Energy_2(I, 1));
+plot(A, B);
