@@ -266,19 +266,13 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                         else
                             disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(1) * Progress_Steps), "%"));
                         end
+                        tic
                         for Current_Line = 1:length(X)
+                            %Write each event to MCPL file format
                             if(Header.Opt_Polarisation)
-                                fwrite(File_ID, Px(Current_Line), Header.Byte_Type);
-                                fwrite(File_ID, Py(Current_Line), Header.Byte_Type);
-                                fwrite(File_ID, Pz(Current_Line), Header.Byte_Type);
+                                fwrite(File_ID, [Px(Current_Line), Py(Current_Line), Pz(Current_Line)], Header.Byte_Type);
                             end
-                            fwrite(File_ID, X(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, Y(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, Z(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, EKinDir_1(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, EKinDir_2(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, EKinDir_3(Current_Line), Header.Byte_Type);
-                            fwrite(File_ID, Time(Current_Line), Header.Byte_Type);
+                            fwrite(File_ID, [X(Current_Line), Y(Current_Line), Z(Current_Line), EKinDir_1(Current_Line), EKinDir_2(Current_Line), EKinDir_3(Current_Line), Time(Current_Line)], Header.Byte_Type);
                             if(~Header.Opt_UniversalWeight)
                                 fwrite(File_ID, Weight(Current_Line), Header.Byte_Type);
                             end
@@ -299,10 +293,11 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                                 end
                             end
                         end
+                        toc
                         %Catch case that final index doesn't get called (due to rounding errors)
                         if(Progress_Count ~= length(Progress_Value))
                             if(Progress_Bar)
-                                Progress(2).Progress = Progress_Value(Progress_Count);
+                                Progress(2).Progress = 1;
                                 Progress_Figure = Multiple_Wait_Bar(Progress, Progress_Figure);
                             else
                                 disp(strcat("MAT_To_MCPL : Chunk Write Progress : ", num2str(Progress_Value(end), "%")));
