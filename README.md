@@ -1,6 +1,6 @@
 # MCPL_File_Handling
 
-Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (MCPL) files.
+Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files.
 
 Features include:
 * Translating binary MCPL data into a MAT file format.
@@ -10,6 +10,7 @@ Features include:
 ### Installation
 #### Compressed MCPL Files
 .MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
+**Note:** WinRAR implementation is only currently operational on a windows platform.
 ```matlab
 %% Parameters for WinRAR implementation
 % Path to WinRAR executable (If not automatically found as WinRAR.exe)
@@ -63,11 +64,11 @@ Read_Parameters.Remove_Zero_Weights = true;
 Read_Parameters.Parpool_Num_Cores = 6;
 % If the temporary files created during multi-core processing are deleted (true = delete temp files)
 Read_Parameters.Remove_Temp_Files = true;
-% If the GZ archive has already been uncompressed.
-% If problems with WinRAR occur, can bypass decompression (true = disable decompression)
-Read_Parameters.Skip_Uncompress = false;
 % Add RAR Parameters to the Read Parameters to pass it through to decompress the GZip archive
 Read_Parameters.RAR_Parameters = RAR_Parameters;
+% If the GZ archive has already been uncompressed, skip decompression.
+% If problems with WinRAR occur, can bypass decompression (true = disable decompression)
+Read_Parameters.Skip_Uncompress = false;
 
 %% Convert MCPL file to MAT file format.
 % Mat_File_Path returns a cell array containing each individual file within the GZIP archive.
@@ -75,7 +76,7 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 ```
 #### Filter_MCPL_MAT_Data.m
-Filters a MAT formatted MCPL file to remove events that are outside a undesired parameter range. Can be useful to reduce insignificant data prior to feeding into another set of simulations.
+Filters a MAT formatted MCPL file to remove events that are outside a undesired parameter range. Can be useful to reduce insignificant data prior to feeding into another set of simulations. Any filters that aren't assigned will not be applied.
 ```matlab
 %% For each MAT file created by MCPL_To_MAT
 for Current_Mat_File = 1:length(Mat_File_Path)
@@ -85,8 +86,8 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 	Filters.X.Max = 0.04;
 	Filters.Y.Min = -0.04;
 	Filters.Y.Max = 0.04;
-	%Filters.Z.Min = 0;
-	%Filters.Z.Max = 1;
+	Filters.Z.Min = 0;
+	Filters.Z.Max = 1;
 	% Angle from the normal (to Z) [positive valued]
 	Filters.Angle.Min = 10;
 	Filters.Angle.Max = 45;
@@ -94,8 +95,8 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 	Filters.Energy.Min = 5;
 	Filters.Energy.Max = 130;
 	% Weighting
-	%Filters.Weight.Min = 0.05;
-	%Filters.Weight.Max = 35;
+	Filters.Weight.Min = 0.05;
+	Filters.Weight.Max = 35;
 
 	%% Create filepath to save the filtered MAT file
 	Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
