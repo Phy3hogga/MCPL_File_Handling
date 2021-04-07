@@ -1,9 +1,9 @@
 # MCPL_File_Handling
 
 Matlab scripts for using MCPL files. Features include:
-* Reading binary MCPL data into a MAT file format.
+* Translating binary MCPL data into a MAT file format.
 * Filtering MAT-formatted MCPL data.
-* Writing MCPL data stored in a MAT file into a raw MCPL file format.
+* Translating a MAT file format binary MCPL file format.
 
 ### Installation
 #### Compressed MCPL Files
