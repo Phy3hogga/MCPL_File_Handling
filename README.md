@@ -139,25 +139,114 @@ Event data containing multiple arrays (single / double) datatypes where a single
 	</thead>
 	<tbody>
 		<tr>
-      <td>X</td>
-      <td rowspan=3>Position</td>
-      <td>Single/Double</td>
-      <td>No</td>
+			<td>X</td>
+			<td rowspan=3>Position</td>
+			<td>Single/Double</td>
+			<td>No</td>
 		</tr>
-    <tr>
-      <td>Y</td>
-      <td>Single/Double</td>
-      <td>No</td>
+		<tr>
+			<td>Y</td>
+			<td>Single/Double</td>
+			<td>No</td>
 		</tr>
-    <tr>
-      <td>Z</td>
-      <td>Single/Double</td>
-      <td>No</td>
+		<tr>
+			<td>Z</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Dx</td>
+			<td rowspan=3>Direction</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Dy</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Dz</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Px</td>
+			<td rowspan=3>Polarisation</td>
+			<td>Single/Double</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td>Py</td>
+			<td>Single/Double</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td>Pz</td>
+			<td>Single/Double</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td>Energy</td>
+			<td></td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Time</td>
+			<td></td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>EKinDir_1</td>
+			<td rowspan=3>Compressed Energy + Direction Vectors</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>EKinDir_2</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>EKinDir_3</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Weight</td>
+			<td>Event Weighting</td>
+			<td>Single/Double</td>
+			<td>If not universally weighted</td>
+		</tr>
+		<tr>
+			<td>PDGCode</td>
+			<td>Particle idenfitier</td>
+			<td>Integer</td>
+			<td>If varying particle types</td>
+		</tr>
+		<tr>
+			<td>Userflag</td>
+			<td>User Specified Flag</td>
+			<td>Integer</td>
+			<td>If value set</td>
+		</tr>
+		<tr>
+			<td>Userflag</td>
+			<td>User Specified Flag</td>
+			<td>Integer</td>
+			<td>If value set</td>
+		</tr>
+		<tr>
+			<td>Header</td>
+			<td>File Header Structure</td>
+			<td>Integer</td>
+			<td>No, See content below</td>
 		</tr>
 	</tbody>
 </table>
-Variable | Datatype | Optional
----------|---------|---------
+
 * Position (X, Y, Z)
 * Direction Vector (Dx, Dy, Dz)
 * Polarisation (Px, Py, Pz) [Optional]
