@@ -140,7 +140,7 @@ Event data containing multiple arrays (single / double) datatypes where a single
 	<tbody>
 		<tr>
 			<td>X</td>
-			<td rowspan=3>Position</td>
+			<td rowspan=3>Position [m]</td>
 			<td>Single/Double</td>
 			<td>No</td>
 		</tr>
@@ -156,7 +156,7 @@ Event data containing multiple arrays (single / double) datatypes where a single
 		</tr>
 		<tr>
 			<td>Dx</td>
-			<td rowspan=3>Direction</td>
+			<td rowspan=3>Direction Vector</td>
 			<td>Single/Double</td>
 			<td>No</td>
 		</tr>
@@ -167,6 +167,18 @@ Event data containing multiple arrays (single / double) datatypes where a single
 		</tr>
 		<tr>
 			<td>Dz</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Energy [KeV]</td>
+			<td></td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Time</td>
+			<td></td>
 			<td>Single/Double</td>
 			<td>No</td>
 		</tr>
@@ -185,18 +197,6 @@ Event data containing multiple arrays (single / double) datatypes where a single
 			<td>Pz</td>
 			<td>Single/Double</td>
 			<td>Yes</td>
-		</tr>
-		<tr>
-			<td>Energy</td>
-			<td></td>
-			<td>Single/Double</td>
-			<td>No</td>
-		</tr>
-		<tr>
-			<td>Time</td>
-			<td></td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>EKinDir_1</td>
@@ -233,15 +233,9 @@ Event data containing multiple arrays (single / double) datatypes where a single
 			<td>If value set</td>
 		</tr>
 		<tr>
-			<td>Userflag</td>
-			<td>User Specified Flag</td>
-			<td>Integer</td>
-			<td>If value set</td>
-		</tr>
-		<tr>
 			<td>Header</td>
-			<td>File Header Structure</td>
-			<td>Integer</td>
+			<td>File Header</td>
+			<td>Structure</td>
 			<td>No, See content below</td>
 		</tr>
 	</tbody>
@@ -250,7 +244,7 @@ Event data containing multiple arrays (single / double) datatypes where a single
 * Position (X, Y, Z)
 * Direction Vector (Dx, Dy, Dz)
 * Polarisation (Px, Py, Pz) [Optional]
-* Energy
+* Energy [KeV]
 * Time
 * EKinDir [Packed energy and direction vectors from the MCPL format specification]
 * Weight [Optional]
