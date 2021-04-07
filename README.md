@@ -1,13 +1,36 @@
 # MCPL_File_Handling
 
-Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files.
+A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files.
 
 Features include:
-* Translating binary .MCPL data into a .MAT file format.
-* Filtering .MAT-formatted MCPL data.
-* Translating a .MAT file format into a binary .MCPL file format.
+<table>
+	<thead>
+		<tr>
+			<th>Script</th>
+			<th>Purpose</th>
+			<th>Example</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>MCPL_To_MAT.m</td>
+			<td>Translating binary .MCPL data into a .MAT file format.</td>
+			<td>[Example](README.md#mcpl_to_mat.m)</td>
+		</tr>
+		<tr>
+			<td>Filter_MCPL_MAT_Data.m</td>
+			<td>Creates a filtered copy of a MAT file containing MCPL data within specific constraints</td>
+			<td>[Example](README.md#filter_mcpl_mat_data.m)</td>
+		</tr>
+		<tr>
+			<td>MAT_To_MCPL.m</td>
+			<td>Translating a .MAT file format into a binary .MCPL file format</td>
+			<td>[Example](README.md#mat_to_mcpl.m)</td>
+		</tr>
+	</tbody>
+</table>
 
-### Installation
+### Installation Requirements / Advice
 #### Compressed MCPL Files
 .MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
 **Note:** WinRAR implementation is only currently operational on a windows platform.
