@@ -78,7 +78,7 @@ Filters a MAT formatted MCPL file to remove events that are outside a undesired 
 %% For each MAT file created by MCPL_To_MAT
 for Current_Mat_File = 1:length(Mat_File_Path)
 	%% Filtering parameters to discard data within the MAT file
-    % Position that events land on the detection plane
+	% Position that events land on the detection plane
     Filters.X.Min = -0.04;
     Filters.X.Max = 0.04;
     Filters.Y.Min = -0.04;
@@ -115,7 +115,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Attempt_Directory_Creation(Output_Directory);
     MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
 
-	%%  Convert MAT file back to an MCPL file
+	%% Convert MAT file back to an MCPL file
 	MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
 end
 ```
