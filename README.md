@@ -3,9 +3,9 @@
 Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files.
 
 Features include:
-* Translating binary MCPL data into a MAT file format.
-* Filtering MAT-formatted MCPL data.
-* Translating a MAT file format binary MCPL file format.
+* Translating binary .MCPL data into a .MAT file format.
+* Filtering .MAT-formatted MCPL data.
+* Translating a .MAT file format into a binary .MCPL file format.
 
 ### Installation
 #### Compressed MCPL Files
