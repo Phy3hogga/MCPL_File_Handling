@@ -79,27 +79,27 @@ Filters a MAT formatted MCPL file to remove events that are outside a undesired 
 for Current_Mat_File = 1:length(Mat_File_Path)
 	%% Filtering parameters to discard data within the MAT file
 	% Position that events land on the detection plane
-    Filters.X.Min = -0.04;
-    Filters.X.Max = 0.04;
-    Filters.Y.Min = -0.04;
-    Filters.Y.Max = 0.04;
-    %Filters.Z.Min = 0;
-    %Filters.Z.Max = 1;
-    % Angle from the normal (to Z) [positive valued]
-    Filters.Angle.Min = 10;
-    Filters.Angle.Max = 45;
-    % Energy [KeV]
-    Filters.Energy.Min = 5;
-    Filters.Energy.Max = 130;
-    % Weighting
-    %Filters.Weight.Min = 0.05;
-    %Filters.Weight.Max = 35;
-    
-    %% Create filepath to save the filtered MAT file
-    Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
-    
-    %% Filter the MCPL data within the MAT file
-    Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
+	Filters.X.Min = -0.04;
+	Filters.X.Max = 0.04;
+	Filters.Y.Min = -0.04;
+	Filters.Y.Max = 0.04;
+	%Filters.Z.Min = 0;
+	%Filters.Z.Max = 1;
+	% Angle from the normal (to Z) [positive valued]
+	Filters.Angle.Min = 10;
+	Filters.Angle.Max = 45;
+	% Energy [KeV]
+	Filters.Energy.Min = 5;
+	Filters.Energy.Max = 130;
+	% Weighting
+	%Filters.Weight.Min = 0.05;
+	%Filters.Weight.Max = 35;
+
+	%% Create filepath to save the filtered MAT file
+	Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
+
+	%% Filter the MCPL data within the MAT file
+	Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
 end
 ```
 
@@ -110,10 +110,12 @@ Converts a .MAT file format into a binary .MCPL file format.
 for Current_Mat_File = 1:length(Mat_File_Path)
 	%% Create directory path to save the .MAT file to
 	[Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
-    Parent_Directory = fileparts(Directory);
-    Output_Directory = fullfile(Parent_Directory, 'DEBUG');
-    Attempt_Directory_Creation(Output_Directory);
-    MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
+	Parent_Directory = fileparts(Directory);
+	% Create new directory path to save converted file to
+	Output_Directory = fullfile(Parent_Directory, 'Converted');
+	Attempt_Directory_Creation(Output_Directory);
+	% Create file path
+	MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
 
 	%% Convert MAT file back to an MCPL file
 	MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
