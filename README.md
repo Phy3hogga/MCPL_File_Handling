@@ -169,5 +169,5 @@ Header contains information regarding the MCPL header / data format including
 * [Windows 10](https://www.microsoft.com/en-gb/software-download/windows10)
 
 ## References
-* ** T. Kittelmann, et al.** - Monte Carlo Particle Lists (MCPL) - [Computer Physics Communications, Volume 218, September 2017, Pages 17-42, ISSN 0010-4655](https://doi.org/10.1016/j.cpc.2017.04.012)
+* **T. Kittelmann, et al.** - Monte Carlo Particle Lists (MCPL) - [Computer Physics Communications, Volume 218, September 2017, Pages 17-42, ISSN 0010-4655](https://doi.org/10.1016/j.cpc.2017.04.012)
 * **Alex Hogg** - *Matlab integration of MCPL* - [Phy3hogga](https://github.com/Phy3hogga)
