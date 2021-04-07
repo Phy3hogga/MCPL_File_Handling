@@ -7,7 +7,7 @@ Matlab scripts for using MCPL files. Features include:
 
 ### Installation
 #### Compressed MCPL Files
-.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 or later installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of valid optional arguments.
+.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 or later installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
 ```matlab
 %% Parameters for WinRAR implementation
 % Path to WinRAR executable (If not automatically found as WinRAR.exe)
@@ -126,7 +126,38 @@ end
 These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
-Event data containing multiple arrays (single / double) datatypes where a single integer index between 1 and Header.Particles corresponds to a singular event. Each event has data located at an identical index position from each variable listed below. 
+Event data containing multiple arrays (single / double) datatypes where a single integer index between 1 and Header.Particles corresponds to a singular event. Each event has data located at an identical index position from each variable listed below.
+
+<table>
+	<thead>
+		<tr>
+			<th>Variable</th>
+			<th>Label</th>
+			<th>Datatype</th>
+			<th>Optional</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+      <td>X</td>
+      <td rowspan=3>Position</td>
+      <td>Single/Double</td>
+      <td>No</td>
+		</tr>
+    <tr>
+      <td>Y</td>
+      <td>Single/Double</td>
+      <td>No</td>
+		</tr>
+    <tr>
+      <td>Z</td>
+      <td>Single/Double</td>
+      <td>No</td>
+		</tr>
+	</tbody>
+</table>
+Variable | Datatype | Optional
+---------|---------|---------
 * Position (X, Y, Z)
 * Direction Vector (Dx, Dy, Dz)
 * Polarisation (Px, Py, Pz) [Optional]
@@ -166,6 +197,7 @@ Header contains information regarding the MCPL header / data format including
 ## Built With
 
 * [Matlab R2018A](https://www.mathworks.com/products/matlab.html)
+* [WinRAR 5.0+](https://www.rarlab.com/)
 * [Windows 10](https://www.microsoft.com/en-gb/software-download/windows10)
 
 ## References
