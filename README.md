@@ -126,7 +126,8 @@ end
 These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
-Event data containing multiple arrays (single / double) datatypes where a single integer index between 1 and Header.Particles corresponds to a singular event. Each event has data located at an identical index position from each variable listed below.
+### Event Data
+Event data containing multiple individual arrays which are all universally indexed between 1 and Header.Particles, where an individual index corresponds to a singular event. The data present in the MAT file is shown in the table below, the header structure is shown below. 
 
 <table>
 	<thead>
@@ -171,8 +172,8 @@ Event data containing multiple arrays (single / double) datatypes where a single
 			<td>No</td>
 		</tr>
 		<tr>
+			<td>Energy</td>
 			<td>Energy [KeV]</td>
-			<td></td>
 			<td>Single/Double</td>
 			<td>No</td>
 		</tr>
@@ -236,46 +237,140 @@ Event data containing multiple arrays (single / double) datatypes where a single
 			<td>Header</td>
 			<td>File Header</td>
 			<td>Structure</td>
-			<td>No, See content below</td>
+			<td>No, See table below</td>
 		</tr>
 	</tbody>
 </table>
 
-* Position (X, Y, Z)
-* Direction Vector (Dx, Dy, Dz)
-* Polarisation (Px, Py, Pz) [Optional]
-* Energy [KeV]
-* Time
-* EKinDir [Packed energy and direction vectors from the MCPL format specification]
-* Weight [Optional]
-* PDGCode [Optional]
-* Userflag [Optional]
-* Header [Structure]
+### Header
+Header contains information regarding the MCPL header / data format. If Header is missing from the MAT file, the MCPL to MAT file conversion was unsuccessful as the header is the last part of the MAT file written.
 
-Header contains information regarding the MCPL header / data format including
-* Endian [Struct] - File endian-ness
-* Endian_Switch [Boolean]- If the endian-ness of data needs switching when compared to the native system endian-ness
-* MCPL_Version [Integer] - File format of MCPL data, write support is for MCPL version 3, read support version 2 and 3.
-* Particles - Total number of events (provides length of each data field)
-* Opt_UserFlag [Boolean] - If the optional userflag is being used.
-* Opt_Polarisation [Boolean] - If optional polarisation data exists.
-* Opt_SinglePrecision [Boolean] - If the data format is single / double.
-* Opt_UniversalPDGCode [Int] - If the data only contains a single particle type.
-* Opt_ParticleSize [Int] - Number of bytes that contains a single event in data.
-* Opt_UniversalWeight [Boolean] - If all events have an identical weighting.
-* Opt_Signature [Int] - Currently un-used, part of the C implementation of the MCPL opening processess.
-* Source [String] - Source of the data within the MCPL file.
-* Comments [String] - Comments
-* Blobs [String] - Blobs
-* Valid [Boolean] - If the header was read successfully and found to be valid (stops re-checking later).
-* End [Int] - Byte position within the MCPL file where the header ends.
-* Byte_Size [Int] - Number of bytes that contain one of the dynamic sized fields for an event.
-* Byte_Type [String] - Data type used within MCPL data 'single' or 'double'.
-* Photon_Byte_Count [Int] - Number of bytes that contain all data related to a single event.
-* Byte_Split [Structure] - Contains the relative byte locations for each individual variable relating to a single event in data.
-* Sort_Events_By_Weight [Boolean] - On opening an MCPL file, if sorting all events into descending order by most signficant weight in the MAT File.
-* Remove_Zero_Weights [Boolean] - If removing all events from the MAT file where event weightings are equal to 0.0.
-* File Chunks [Structure] - Used for processing the MCPL file into the MAT file; done in chunks in parallel for multi-core / memory optimisations. 
+<table>
+	<thead>
+		<tr>
+			<th>Structure Field</th>
+			<th>Datatype</th>
+			<th>Notes</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Endian</td>
+			<td>Struct</td>
+			<td>File Endian-ness</td>
+		</tr>
+		<tr>
+			<td>Endian_Switch</td>
+			<td>Boolean</td>
+			<td>System Endian-ness matches File Endian-ness at the time of translation</td>
+		</tr>
+		<tr>
+			<td>MCPL_Version</td>
+			<td>Integer</td>
+			<td>Supports uncompressing MCPL versions 2 and 3, compresses version 3</td>
+		</tr>
+		<tr>
+			<td>Particles</td>
+			<td>Integer</td>
+			<td>Total number of events</td>
+		</tr>
+		<tr>
+			<td>Opt_Userflag</td>
+			<td>Boolean</td>
+			<td>If the optional userflag is set</td>
+		</tr>
+		<tr>
+			<td>Opt_Polarisation</td>
+			<td>Boolean</td>
+			<td>If polarisation data exists</td> 
+		</tr>
+		<tr>
+			<td>Opt_SinglePrecision</td>
+			<td>Boolean</td>
+			<td>If single / double precision</td>
+		</tr>
+		<tr>
+			<td>Opt_UniversalPDGCode</td>
+			<td>Integer</td>
+			<td>PDGCode identifying a single particle type if no variance</td>
+		</tr>
+		<tr>
+			<td>Opt_ParticleSize</td>
+			<td>Integer</td>
+			<td>Number of bytes that contain a single event</td>
+		</tr>
+		<tr>
+			<td>Opt_UniversalWeight</td>
+			<td>Boolean</td>
+			<td>If all events have identical weighting</td>
+		</tr>
+		<tr>
+			<td>Opt_Signature</td>
+			<td>Int</td>
+			<td>Currently un-used, part of the C implementation of the MCPL opening process</td>
+		</tr>
+		<tr>
+			<td>Source</td>
+			<td>Cell Array</td>
+			<td>Source of the MCPL data</td>
+		</tr>
+		<tr>
+			<td>Comments</td>
+			<td>Cell Array</td>
+			<td>Comments in the MCPL data</td>
+		</tr>
+		<tr>
+			<td>Blobs</td>
+			<td>Cell Array</td>
+			<td></td>
+		</tr>
+		<tr>
+			<td>Valid</td>
+			<td>Boolean</td>
+			<td>If the header was read successfully and found to be a valid format</td>
+		</tr>
+		<tr>
+			<td>End</td>
+			<td>Integer</td>
+			<td>Final Byte position of the header data</td>
+		</tr>
+		<tr>
+			<td>Byte_Size</td>
+			<td>Integer</td>
+			<td>Number of bytes that contain a single dynamicly sized variable</td>
+		</tr>
+		<tr>
+			<td>Byte_Type</td>
+			<td>String</td>
+			<td>Data type used within the dynamic size MCPL files ('Single' / 'Double')</td>
+		</tr>
+		<tr>
+			<td>Photon_Byte_Count</td>
+			<td>Integer</td>
+			<td>Number of bytes that contain all data related to a single event</td>
+		</tr>
+		<tr>
+			<td>Byte_Split</td>
+			<td>Structure</td>
+			<td>Contains the relative byte positions for all variables corresponding to a single event</td>
+		</tr>
+		<tr>
+			<td>Sort_Events_By_Weight</td>
+			<td>Boolean</td>
+			<td>On opening an MCPL file, if sorting all events into descending order by most signficant weight in the MAT File.</td>
+		</tr>
+		<tr>
+			<td>Remove_Zero_Weights</td>
+			<td>Boolean</td>
+			<td>If removing all insignificant events from the MAT file where event weightings are equal to exactly 0.</td>
+		</tr>
+		<tr>
+			<td>File_Chunks</td>
+			<td>Structure</td>
+			<td>Tracking tempoary files, byte positions in the original file, number of events</td>
+		</tr>
+	</tbody>
+</table>
 
 ## Built With
 
