@@ -17,7 +17,7 @@ git config --global url."https://".insteadOf git://
 3. Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
 
 #### Cloning the repository
-1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone this repository, see the above section [If using HTTPS and not SSH](README.md#if-using-https-and-not-ssh-to-clone) before continuing initiating and cloning the required submmodules.*
+1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone this repository, see section [If using HTTPS and not SSH](README.md#if-using-https-and-not-ssh-to-clone) before attempting to initiate and clone the required submmodules.*
 2. Using the GIT command line from within the parent repository directory, initate all of the submodules using the command.
 ```git
 git submodule update --init --recursive
