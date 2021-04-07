@@ -142,34 +142,26 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>X</td>
 			<td rowspan=3>Position [m]</td>
-			<td>Single/Double</td>
-			<td>No</td>
+			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>No</td>
 		</tr>
 		<tr>
 			<td>Y</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Z</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Dx</td>
 			<td rowspan=3>Direction Vector</td>
-			<td>Single/Double</td>
-			<td>No</td>
+			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>No</td>
 		</tr>
 		<tr>
 			<td>Dy</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Dz</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Energy</td>
@@ -186,34 +178,26 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>Px</td>
 			<td rowspan=3>Polarisation</td>
-			<td>Single/Double</td>
-			<td>Yes</td>
+			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>Yes</td>
 		</tr>
 		<tr>
 			<td>Py</td>
-			<td>Single/Double</td>
-			<td>Yes</td>
 		</tr>
 		<tr>
 			<td>Pz</td>
-			<td>Single/Double</td>
-			<td>Yes</td>
 		</tr>
 		<tr>
 			<td>EKinDir_1</td>
 			<td rowspan=3>Compressed Energy + Direction Vectors</td>
-			<td>Single/Double</td>
-			<td>No</td>
+			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>No</td>
 		</tr>
 		<tr>
 			<td>EKinDir_2</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>EKinDir_3</td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Weight</td>
