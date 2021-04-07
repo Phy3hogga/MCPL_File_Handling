@@ -27,7 +27,6 @@ RAR_Parameters.Overwrite_Mode = true;
 
 %% Parameters for MCPL processing to MAT file
 %If events are sorted in descending order of weight with the most significant events at the top of the file. (true = sort)
-%% TODO : Chunk combination not sorted
 Read_Parameters.Sort_Events_By_Weight = true;
 %If events with exactly 0 weighting (represent no photons) are to be removed (true = removed)
 Read_Parameters.Remove_Zero_Weights = true;

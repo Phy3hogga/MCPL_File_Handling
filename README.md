@@ -1,7 +1,7 @@
 # MCPL_File_Handling
 
-Matlab scripts for using MCPL files. Features include
-* Reading raw MCPL data into a MAT file format.
+Matlab scripts for using MCPL files. Features include:
+* Reading binary MCPL data into a MAT file format.
 * Filtering MAT-formatted MCPL data.
 * Writing MCPL data stored in a MAT file into a raw MCPL file format.
 
@@ -14,6 +14,8 @@ Matlab scripts for using MCPL files. Features include
 RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
 % Overwrite any files already existing automatically (will not prompt)
 RAR_Parameters.Overwrite_Mode = true;
+%Add RAR Parameters to the Read Parameters for MPCL_To_MAT.m
+Read_Parameters.RAR_Parameters = RAR_Parameters;
 ```
 
 #### Cloning the repository
@@ -41,22 +43,82 @@ git config --global url."https://".insteadOf git://
 #### MCPL_To_Mat.m
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
 ```matlab
+%% File path to convert the MCPL file to MAT format
+File_Path = 'D:\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
 
+%% Parameters for WinRAR implementation
+% Path to WinRAR executable
+RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
+% By default overwrite any files already existing
+RAR_Parameters.Overwrite_Mode = true;
+
+%% Parameters for MCPL processing to MAT file
+% If events are sorted in order of weighting with the most significant events at the top of the file. (true = sort)
+Read_Parameters.Sort_Events_By_Weight = true;
+% If events with exactly 0 weighting (represent no photons) are to be removed (true = removed)
+Read_Parameters.Remove_Zero_Weights = true;
+% Number of cores for the Parpool to use when converting the raw MCPL file (integer)
+Read_Parameters.Parpool_Num_Cores = 6;
+% If the temporary files created during multi-core processing are deleted (true = delete temp files)
+Read_Parameters.Remove_Temp_Files = true;
+% If the GZ archive has already been uncompressed. If problems with WinRAR occur, can bypass decompression (true = disable decompression)
+Read_Parameters.Skip_Uncompress = false;
+% Add RAR Parameters to the Read Parameters to pass it through to decompress the GZip archive
+Read_Parameters.RAR_Parameters = RAR_Parameters;
+
+%% Convert MCPL file to MAT file format. Mat_File_Path returns a cell array containing each individual file within the GZIP archive (compensates for the case of non-merged MPI data).
+Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 ```
 #### Filter_MCPL_MAT_Data.m
 Filters a MAT formatted MCPL file to remove events that are outside a undesired parameter range. Can be useful to reduce insignificant data prior to feeding into another set of simulations.
 ```matlab
-
+%% For each MAT file created by MCPL_To_MAT
+for Current_Mat_File = 1:length(Mat_File_Path)
+	%% Filtering parameters to discard data within the MAT file
+    % Position that events land on the detection plane
+    Filters.X.Min = -0.04;
+    Filters.X.Max = 0.04;
+    Filters.Y.Min = -0.04;
+    Filters.Y.Max = 0.04;
+    %Filters.Z.Min = 0;
+    %Filters.Z.Max = 1;
+    % Angle from the normal (to Z) [positive valued]
+    Filters.Angle.Min = 10;
+    Filters.Angle.Max = 45;
+    % Energy [KeV]
+    Filters.Energy.Min = 5;
+    Filters.Energy.Max = 130;
+    % Weighting
+    %Filters.Weight.Min = 0.05;
+    %Filters.Weight.Max = 35;
+    
+    %% Create filepath to save the filtered MAT file
+    Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
+    
+    %% Filter the MCPL data within the MAT file
+    Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
+end
 ```
 
 #### MAT_To_MCPL.m
 Converts a .MAT file format into a binary .MCPL file format.
 ```matlab
+%% For each MAT file created by MCPL_To_MAT
+for Current_Mat_File = 1:length(Mat_File_Path)
+	%% Create directory path to save the .MAT file to
+	[Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
+    Parent_Directory = fileparts(Directory);
+    Output_Directory = fullfile(Parent_Directory, 'DEBUG');
+    Attempt_Directory_Creation(Output_Directory);
+    MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
 
+	%%  Convert MAT file back to an MCPL file
+	MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath);
+end
 ```
 
 #### EKinDir_Pack.m / EKinDir_Unpack.m
-performs the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce size on disk. These functions shouldn't need to be directly called, they are used within the scripts listed above.
+These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
 Event data containing multiple arrays (single / double) datatypes where a single integer index between 1 and Header.Particles corresponds to a singular event. Each event has data located at an identical index position from each variable listed below. 
