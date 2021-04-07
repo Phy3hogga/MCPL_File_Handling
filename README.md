@@ -203,25 +203,25 @@ Event data containing multiple individual arrays which are all universally index
 			<td>Weight</td>
 			<td>Event Weighting</td>
 			<td>Single/Double</td>
-			<td>If not universally weighted</td>
+			<td>Yes (If not universally weighted)</td>
 		</tr>
 		<tr>
 			<td>PDGCode</td>
 			<td>Particle idenfitier</td>
 			<td>Integer</td>
-			<td>If varying particle types</td>
+			<td>Yes (If varying particle types)</td>
 		</tr>
 		<tr>
 			<td>Userflag</td>
 			<td>User Specified Flag</td>
 			<td>Integer</td>
-			<td>If value set</td>
+			<td>Yes (If value set)</td>
 		</tr>
 		<tr>
 			<td>Header</td>
 			<td>File Header</td>
 			<td>Structure</td>
-			<td>No, See table below</td>
+			<td>No (See header table below)</td>
 		</tr>
 	</tbody>
 </table>
