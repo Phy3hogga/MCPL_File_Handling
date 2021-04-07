@@ -6,28 +6,29 @@ Matlab scripts for using MCPL files. Features include
 * Writing MCPL data stored in a MAT file into a raw MCPL file format.
 
 ### Installation
-#### Cloning the repository
-Clone the parent repository MCPL_File_Handling as normal.
-The submodules will then need to be initiated and cloned seperately.
-##### Using SSH
-Using the GIT command line from within the parent repository, to initate all of the submodules.
-```git
-git submodule update --init --recursive
-```
-To clone the submodule contents
-```git
-git pull --recurse-submodules
-```
-
-##### Using HTTPS (not advised)
-Edit the git config to re-write all git pulls to https at runtime.
+#### If using HTTPS and not SSH to clone
+This repository has submodules linked using SSH rather than HTTPS. Three possible options for cloning the submodules if cloning using HTTPS rather than SSH are as follows:
+1. If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
 ```git
 git config --global url."https://github.com/".insteadOf git@github.com:
 git config --global url."https://".insteadOf git://
 ```
+2. Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules. 
+3. Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
+
+#### Cloning the repository
+1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone this repository, see the above section [If using HTTPS and not SSH](https://github.com/imaging-science-group-ntu/MCPL_File_Handling/readme.md "If using HTTPS and not SSH to clone") before continuing initiating and cloning the required submmodules.*
+2. Using the GIT command line from within the parent repository directory, initate all of the submodules using the command.
+```git
+git submodule update --init --recursive
+```
+3. Clone all of the submodule contents.
+```git
+git pull --recurse-submodules
+```
 
 #### Compressed MCPL Files
-.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 or later installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", use the following path variables to edit the integrated WinRAR support. For more information on configuring the WinRAR support, see [Winrar](https://github.com/Phy3hogga/WinRAR).
+.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 or later installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see [Winrar](https://github.com/Phy3hogga/WinRAR) for a list of valid  optional arguments.
 ```matlab
 %% Parameters for WinRAR implementation
 % Path to WinRAR executable (If not automatically found as WinRAR.exe)
@@ -39,7 +40,6 @@ RAR_Parameters.Overwrite_Mode = true;
 ### Functions
 #### MCPL_To_Mat.m
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
-
 ```matlab
 
 ```
@@ -91,7 +91,7 @@ Header contains information regarding the MCPL header / data format including
 * Byte_Size [Int] - Number of bytes that contain one of the dynamic sized fields for an event.
 * Byte_Type [String] - Data type used within MCPL data 'single' or 'double'.
 * Photon_Byte_Count [Int] - Number of bytes that contain all data related to a single event.
-* Byte_Split [Structure] - Contains the data that splits each of the data fields relating to a single event.
+* Byte_Split [Structure] - Contains the relative byte locations for each individual variable relating to a single event in data.
 * Sort_Events_By_Weight [Boolean] - On opening an MCPL file, if sorting all events into descending order by most signficant weight in the MAT File.
 * Remove_Zero_Weights [Boolean] - If removing all events from the MAT file where event weightings are equal to 0.0.
 * File Chunks [Structure] - Used for processing the MCPL file into the MAT file; done in chunks in parallel for multi-core / memory optimisations. 
