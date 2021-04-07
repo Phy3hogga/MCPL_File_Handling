@@ -322,7 +322,7 @@ Header contains information regarding the MCPL header / data format. If Header i
 		<tr>
 			<td>Blobs</td>
 			<td>Cell Array</td>
-			<td></td>
+			<td>Blobs in the MCPL data</td>
 		</tr>
 		<tr>
 			<td>Valid</td>
