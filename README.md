@@ -61,12 +61,15 @@ Read_Parameters.Remove_Zero_Weights = true;
 Read_Parameters.Parpool_Num_Cores = 6;
 % If the temporary files created during multi-core processing are deleted (true = delete temp files)
 Read_Parameters.Remove_Temp_Files = true;
-% If the GZ archive has already been uncompressed. If problems with WinRAR occur, can bypass decompression (true = disable decompression)
+% If the GZ archive has already been uncompressed.
+% If problems with WinRAR occur, can bypass decompression (true = disable decompression)
 Read_Parameters.Skip_Uncompress = false;
 % Add RAR Parameters to the Read Parameters to pass it through to decompress the GZip archive
 Read_Parameters.RAR_Parameters = RAR_Parameters;
 
-%% Convert MCPL file to MAT file format. Mat_File_Path returns a cell array containing each individual file within the GZIP archive (compensates for the case of non-merged MPI data).
+%% Convert MCPL file to MAT file format.
+% Mat_File_Path returns a cell array containing each individual file within the GZIP archive.
+% This compensates for the case of non-merged MPI data).
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 ```
 #### Filter_MCPL_MAT_Data.m
