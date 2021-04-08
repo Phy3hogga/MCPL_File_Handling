@@ -16,21 +16,21 @@ Features include:
 			<td>MCPL_To_MAT.m</td>
 			<td>Translating binary .MCPL data into a .MAT file format.</td>
 			<td>
-				<a href="README.md#mcpl_to_mat.m" title="Filter">Example</a>
+				<a href="README.md#mcpl_to_mat" title="Filter">Example</a>
 			</td>
 		</tr>
 		<tr>
 			<td>Filter_MCPL_MAT_Data.m</td>
 			<td>Creates a filtered copy of a MAT file containing MCPL data within specific constraints</td>
 			<td>
-				<a href="README.md#Filter_MCPL_MAT_Data.m" title="Filter">Example</a>
+				<a href="README.md#Filter_MCPL_MAT_Data" title="Filter">Example</a>
 			</td>
 		</tr>
 		<tr>
 			<td>MAT_To_MCPL.m</td>
 			<td>Translating a .MAT file format into a binary .MCPL file format</td>
 			<td>
-				<a href="README.md#mat_to_mcpl.m" title="Filter">Example</a>
+				<a href="README.md#mat_to_mcpl" title="Filter">Example</a>
 			</td>
 		</tr>
 	</tbody>
@@ -73,7 +73,7 @@ git config --global url."https://".insteadOf git://
 3. Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
 
 ### Functions
-#### MCPL_To_Mat.m
+#### MCPL_To_Mat
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
 ```matlab
 %% File path to convert the MCPL file to MAT format
@@ -105,7 +105,7 @@ Read_Parameters.Skip_Uncompress = false;
 % This compensates for the case of non-merged MPI data).
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 ```
-#### Filter_MCPL_MAT_Data.m
+#### Filter_MCPL_MAT_Data
 Filters a MAT formatted MCPL file to remove events that are outside a undesired parameter range. Can be useful to reduce insignificant data prior to feeding into another set of simulations. Any filters that aren't assigned will not be applied.
 ```matlab
 %% For each MAT file created by MCPL_To_MAT
@@ -136,7 +136,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 end
 ```
 
-#### MAT_To_MCPL.m
+#### MAT_To_MCPL
 Converts a .MAT file format into a binary .MCPL file format.
 ```matlab
 %% For each MAT file created by MCPL_To_MAT
@@ -155,7 +155,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 end
 ```
 
-#### EKinDir_Pack.m / EKinDir_Unpack.m
+#### EKinDir_Pack / EKinDir_Unpack
 These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
