@@ -23,6 +23,7 @@ Features include:
 			<td>Filter_MCPL_MAT_Data.m</td>
 			<td>Creates a filtered copy of a MAT file containing MCPL data within specific constraints</td>
 			<td>
+				<a href="README.md#filter_mcpl_mat_data.m" title="Example">foo</a>
 				[Example](README.md#filter_mcpl_mat_data.m)
 			</td>
 		</tr>
