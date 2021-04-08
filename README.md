@@ -35,42 +35,6 @@ A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo 
 	</tbody>
 </table>
 
-## Installation Requirements / Advice
-### Compressed MCPL Files (.MCPL.GZ)
-***Note:** WinRAR implementation is only currently only supported on windows.*
-
-.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
-```matlab
-%% Parameters for WinRAR implementation
-% Path to WinRAR executable (If not automatically found as WinRAR.exe)
-RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
-% Overwrite any files already existing automatically (will not prompt)
-RAR_Parameters.Overwrite_Mode = true;
-%Add RAR Parameters to the Read Parameters for MPCL_To_MAT.m
-Read_Parameters.RAR_Parameters = RAR_Parameters;
-```
-
-### Cloning the repository
-1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone repositories from github, see section [If using HTTPS and not SSH](README.md#if-using-https-and-not-ssh-to-clone) before attempting to initiate and clone the required submmodules.*
-2. Using the GIT command line from within the parent repository directory, initate all of the submodules using the command. This command only needs performing before the pulling the submodule contents for the first time.
-```git
-git submodule update --init --recursive
-```
-3. Clone all of the submodule contents.
-```git
-git pull --recurse-submodules
-```
-
-### If using HTTPS and not SSH to clone
-This repository has submodules linked using SSH rather than HTTPS. If wanting to clone the repository using HTTPS, additional steps to clone the submodules using HTTPS rather than SSH are as follows:
-* If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
-```git
-git config --global url."https://github.com/".insteadOf git@github.com:
-git config --global url."https://".insteadOf git://
-```
-* Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules.
-* Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
-
 ## Functions
 ### MCPL_To_Mat
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
@@ -389,6 +353,43 @@ Header contains the information regarding either the MCPL header / data format o
 		</tr>
 	</tbody>
 </table>
+
+
+## Installation Requirements / Advice
+### Compressed MCPL Files (.MCPL.GZ)
+***Note:** WinRAR implementation is only currently only supported on windows.*
+
+.MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
+```matlab
+%% Parameters for WinRAR implementation
+% Path to WinRAR executable (If not automatically found as WinRAR.exe)
+RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
+% Overwrite any files already existing automatically (will not prompt)
+RAR_Parameters.Overwrite_Mode = true;
+%Add RAR Parameters to the Read Parameters for MPCL_To_MAT.m
+Read_Parameters.RAR_Parameters = RAR_Parameters;
+```
+
+### Cloning the repository
+1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone repositories from github, see section [If using HTTPS and not SSH](README.md#if-using-https-and-not-ssh-to-clone) before attempting to initiate and clone the required submmodules.*
+2. Using the GIT command line from within the parent repository directory, initate all of the submodules using the command. This command only needs performing before the pulling the submodule contents for the first time.
+```git
+git submodule update --init --recursive
+```
+3. Clone all of the submodule contents.
+```git
+git pull --recurse-submodules
+```
+
+### If using HTTPS and not SSH to clone
+This repository has submodules linked using SSH rather than HTTPS. If wanting to clone the repository using HTTPS, additional steps to clone the submodules using HTTPS rather than SSH are as follows:
+* If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
+```git
+git config --global url."https://github.com/".insteadOf git@github.com:
+git config --global url."https://".insteadOf git://
+```
+* Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules.
+* Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
 
 ## Built With
 
