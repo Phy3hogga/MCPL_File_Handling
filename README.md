@@ -180,7 +180,7 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>X</td>
 			<td rowspan=3>Position [m]</td>
-			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>Single/Double*</td>
 			<td rowspan=3>No</td>
 		</tr>
 		<tr>
@@ -192,7 +192,7 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>Dx</td>
 			<td rowspan=3>Direction Vector</td>
-			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>Single/Double*</td>
 			<td rowspan=3>No</td>
 		</tr>
 		<tr>
@@ -204,7 +204,7 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>Px</td>
 			<td rowspan=3>Polarisation</td>
-			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>Single/Double*</td>
 			<td rowspan=3>Yes</td>
 		</tr>
 		<tr>
@@ -216,7 +216,7 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>EKinDir_1</td>
 			<td rowspan=3>Compressed Energy + Direction Vectors</td>
-			<td rowspan=3>Single/Double</td>
+			<td rowspan=3>Single/Double*</td>
 			<td rowspan=3>No</td>
 		</tr>
 		<tr>
@@ -228,19 +228,19 @@ Event data containing multiple individual arrays which are all universally index
 		<tr>
 			<td>Energy</td>
 			<td>Energy [KeV]</td>
-			<td>Single/Double</td>
+			<td>Single/Double*</td>
 			<td>No</td>
 		</tr>
 		<tr>
 			<td>Time</td>
 			<td></td>
-			<td>Single/Double</td>
+			<td>Single/Double*</td>
 			<td>No</td>
 		</tr>
 		<tr>
 			<td>Weight</td>
 			<td>Event Weighting</td>
-			<td>Single/Double</td>
+			<td>Single/Double*</td>
 			<td>Yes (If not universally weighted)</td>
 		</tr>
 		<tr>
@@ -257,6 +257,8 @@ Event data containing multiple individual arrays which are all universally index
 		</tr>
 	</tbody>
 </table>
+
+\* Data type varies between single or double datatypes due to the precision specified when originally creating the MCPL file.
 
 ### Header
 Header contains information regarding the MCPL header / data format. If Header is missing from the MAT file, the MCPL to MAT file conversion was unsuccessful as the header is the last part of the MAT file written.
