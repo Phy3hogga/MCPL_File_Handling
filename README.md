@@ -62,14 +62,14 @@ git pull --recurse-submodules
 ```
 
 ### If using HTTPS and not SSH to clone
-This repository has submodules linked using SSH rather than HTTPS. Three possible options for cloning the submodules if cloning using HTTPS rather than SSH are as follows:
-1. If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
+This repository has submodules linked using SSH rather than HTTPS. If wanting to clone the repository using HTTPS, additional steps to clone the submodules using HTTPS rather than SSH are as follows:
+* If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
 ```git
 git config --global url."https://github.com/".insteadOf git@github.com:
 git config --global url."https://".insteadOf git://
 ```
-2. Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules.
-3. Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
+* Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules.
+* Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
 
 ## Functions
 ### MCPL_To_Mat
