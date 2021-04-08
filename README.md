@@ -261,7 +261,7 @@ Event data containing multiple individual arrays which are all universally index
 \* Data type varies between single or double datatypes due to the precision specified when originally creating the MCPL file.
 
 ### Header
-Header contains information regarding the MCPL header / data format. If Header is missing from the MAT file, the MCPL to MAT file conversion was unsuccessful as the header is the last part of the MAT file written.
+Header contains the information regarding either the MCPL header / data format or miscilaneous values used by multiple subsequent functions in this software package. If the Header variable is missing from the MAT file created by MCPL_To_MAT, the MCPL to MAT file conversion was unsuccessful; as the header is the final part of the MAT file to be written.
 
 <table>
 	<thead>
