@@ -1,8 +1,7 @@
 # MCPL_File_Handling
 
-A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files.
+A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo **P**article **L**ists (**MCPL**) files within Matlab.
 
-Features include:
 <table>
 	<thead>
 		<tr>
@@ -36,9 +35,9 @@ Features include:
 	</tbody>
 </table>
 
-### Installation Requirements / Advice
-#### Compressed MCPL Files
-**Note:** WinRAR implementation is only currently operational on a windows platform.
+## Installation Requirements / Advice
+### Compressed MCPL Files (.GZ)
+***Note:** WinRAR implementation is only currently only supported on windows.*
 
 .MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
 ```matlab
@@ -51,7 +50,7 @@ RAR_Parameters.Overwrite_Mode = true;
 Read_Parameters.RAR_Parameters = RAR_Parameters;
 ```
 
-#### Cloning the repository
+### Cloning the repository
 1. Clone the parent repository MCPL_File_Handling as normal, the submodules will then need to be initiated and cloned seperately. *If using HTTPS to clone repositories from github, see section [If using HTTPS and not SSH](README.md#if-using-https-and-not-ssh-to-clone) before attempting to initiate and clone the required submmodules.*
 2. Using the GIT command line from within the parent repository directory, initate all of the submodules using the command. This command only needs performing before the pulling the submodule contents for the first time.
 ```git
@@ -62,7 +61,7 @@ git submodule update --init --recursive
 git pull --recurse-submodules
 ```
 
-#### If using HTTPS and not SSH to clone
+### If using HTTPS and not SSH to clone
 This repository has submodules linked using SSH rather than HTTPS. Three possible options for cloning the submodules if cloning using HTTPS rather than SSH are as follows:
 1. If not already configured, edit the git config file on your PC to re-write all SSH pulls to HTTPS at runtime. Cloning any module with an SSH link should then be automatically redirected to HTTPS.
 ```git
@@ -72,8 +71,8 @@ git config --global url."https://".insteadOf git://
 2. Edit the gitmodules file located in the parent repository to manually replace any SSH links with HTTPS link formats. Be aware that when pulling future updates, the gitmodules file may need changing again to update the respective submodules.
 3. Clone each of the the linked submodules manually by opening the individual repositories on Github and cloning them each to their respective sub-directories.
 
-### Functions
-#### MCPL_To_Mat
+## Functions
+### MCPL_To_Mat
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
 ```matlab
 %% File path to convert the MCPL file to MAT format
@@ -105,7 +104,7 @@ Read_Parameters.Skip_Uncompress = false;
 % This compensates for the case of non-merged MPI data).
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 ```
-#### Filter_MCPL_MAT_Data
+### Filter_MCPL_MAT_Data
 Filters a MAT formatted MCPL file to remove events that are outside a undesired parameter range. Can be useful to reduce insignificant data prior to feeding into another set of simulations. Any filters that aren't assigned will not be applied.
 ```matlab
 %% For each MAT file created by MCPL_To_MAT
@@ -136,7 +135,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 end
 ```
 
-#### MAT_To_MCPL
+### MAT_To_MCPL
 Converts a .MAT file format into a binary .MCPL file format.
 ```matlab
 %% For each MAT file created by MCPL_To_MAT
@@ -155,7 +154,7 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 end
 ```
 
-#### EKinDir_Pack / EKinDir_Unpack
+### EKinDir_Pack / EKinDir_Unpack
 These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
@@ -396,5 +395,5 @@ Header contains information regarding the MCPL header / data format. If Header i
 * [Windows 10](https://www.microsoft.com/en-gb/software-download/windows10)
 
 ## References
-* **T. Kittelmann, et al.** - *Monte Carlo Particle Lists (MCPL)* - [Computer Physics Communications, Volume 218, September 2017, Pages 17-42, ISSN 0010-4655](https://doi.org/10.1016/j.cpc.2017.04.012)
 * **Alex Hogg** - *Matlab integration of MCPL* - [Phy3hogga](https://github.com/Phy3hogga)
+* **T. Kittelmann, et al.** - *Monte Carlo Particle Lists (MCPL)* - [Computer Physics Communications, Volume 218, September 2017, Pages 17-42, ISSN 0010-4655](https://doi.org/10.1016/j.cpc.2017.04.012)
