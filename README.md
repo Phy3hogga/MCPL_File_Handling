@@ -15,17 +15,29 @@ Features include:
 		<tr>
 			<td>MCPL_To_MAT.m</td>
 			<td>Translating binary .MCPL data into a .MAT file format.</td>
-			<td>[Example](README.md#mcpl_to_mat.m)</td>
+			<td>
+
+				[Example](README.md#mcpl_to_mat.m)
+
+			</td>
 		</tr>
 		<tr>
 			<td>Filter_MCPL_MAT_Data.m</td>
 			<td>Creates a filtered copy of a MAT file containing MCPL data within specific constraints</td>
-			<td>[Example](README.md#filter_mcpl_mat_data.m)</td>
+			<td>
+			
+				[Example](README.md#filter_mcpl_mat_data.m)
+
+			</td>
 		</tr>
 		<tr>
 			<td>MAT_To_MCPL.m</td>
 			<td>Translating a .MAT file format into a binary .MCPL file format</td>
-			<td>[Example](README.md#mat_to_mcpl.m)</td>
+			<td>
+
+				[Example](README.md#mat_to_mcpl.m)
+
+			</td>
 		</tr>
 	</tbody>
 </table>
