@@ -36,7 +36,7 @@ A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo 
 </table>
 
 ## Installation Requirements / Advice
-### Compressed MCPL Files (.GZ)
+### Compressed MCPL Files (.MCPL.GZ)
 ***Note:** WinRAR implementation is only currently only supported on windows.*
 
 .MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
