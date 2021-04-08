@@ -30,7 +30,7 @@ Features include:
 			<td>MAT_To_MCPL.m</td>
 			<td>Translating a .MAT file format into a binary .MCPL file format</td>
 			<td>
-				<a href="README.md#README.md#mat_to_mcpl.m" title="Filter">Example</a>
+				<a href="README.md#mat_to_mcpl.m" title="Filter">Example</a>
 			</td>
 		</tr>
 	</tbody>
