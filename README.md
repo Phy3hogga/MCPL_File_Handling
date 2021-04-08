@@ -172,6 +172,12 @@ Event data containing multiple individual arrays which are all universally index
 	</thead>
 	<tbody>
 		<tr>
+			<td>Header</td>
+			<td>File Header</td>
+			<td>Structure</td>
+			<td>No (See <a href="README.md#Header" title="Header Table">header table</a>)</td>
+		</tr>
+		<tr>
 			<td>X</td>
 			<td rowspan=3>Position [m]</td>
 			<td rowspan=3>Single/Double</td>
@@ -194,18 +200,6 @@ Event data containing multiple individual arrays which are all universally index
 		</tr>
 		<tr>
 			<td>Dz</td>
-		</tr>
-		<tr>
-			<td>Energy</td>
-			<td>Energy [KeV]</td>
-			<td>Single/Double</td>
-			<td>No</td>
-		</tr>
-		<tr>
-			<td>Time</td>
-			<td></td>
-			<td>Single/Double</td>
-			<td>No</td>
 		</tr>
 		<tr>
 			<td>Px</td>
@@ -232,6 +226,18 @@ Event data containing multiple individual arrays which are all universally index
 			<td>EKinDir_3</td>
 		</tr>
 		<tr>
+			<td>Energy</td>
+			<td>Energy [KeV]</td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
+			<td>Time</td>
+			<td></td>
+			<td>Single/Double</td>
+			<td>No</td>
+		</tr>
+		<tr>
 			<td>Weight</td>
 			<td>Event Weighting</td>
 			<td>Single/Double</td>
@@ -248,12 +254,6 @@ Event data containing multiple individual arrays which are all universally index
 			<td>User Specified Flag</td>
 			<td>Integer</td>
 			<td>Yes (If value set)</td>
-		</tr>
-		<tr>
-			<td>Header</td>
-			<td>File Header</td>
-			<td>Structure</td>
-			<td>No (See header table below)</td>
 		</tr>
 	</tbody>
 </table>
