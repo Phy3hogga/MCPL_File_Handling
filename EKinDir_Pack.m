@@ -14,9 +14,9 @@ function [EKinDir_1, EKinDir_2, EKinDir_3] = EKinDir_Pack(Dx, Dy, Dz, Energy)
         error("EKinDir_Pack : Dx and Energy length mismatch.");
     end
     %output (x,y,sign(z)) - default
-    EKinDir_1(length(Dx)) = Dx;
-    EKinDir_2(length(Dx)) = Dy;
-    EKinDir_3(length(Dx)) = Dz;
+    EKinDir_1 = Dx;
+    EKinDir_2 = Dy;
+    EKinDir_3 = Dz;
     Abs_X = abs(Dx);
     Abs_Y = abs(Dy);
     Condition_1 = abs(Dz) < max(Abs_X, Abs_Y);
