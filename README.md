@@ -125,7 +125,7 @@ These scripts perform the compression / decompression algorithms condensing the 
 
 ## Structure of MAT file containing MCPL data
 ### Event Data
-Event data containing multiple individual arrays which are all universally indexed between 1 and Header.Particles, where an individual index corresponds to a singular event. The data present in the MAT file is shown in the table below, the header structure is shown below. 
+Event data containing multiple individual arrays which are all universally indexed between 1 and Header.Particles, where an individual index corresponds to a singular event. The data present in the MAT file is shown in the table directly below, the header structure is shown in the subsequent table. 
 
 <table>
 	<thead>
@@ -139,7 +139,7 @@ Event data containing multiple individual arrays which are all universally index
 	<tbody>
 		<tr>
 			<td>Header</td>
-			<td>File Header</td>
+			<td>MCPL File Header Data</td>
 			<td>Structure</td>
 			<td>No (See <a href="README.md#Header" title="Header Table">header table</a>)</td>
 		</tr>
