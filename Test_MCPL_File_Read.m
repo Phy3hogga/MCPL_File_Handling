@@ -11,7 +11,8 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
 File_Path = 'H:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
-File_Path = 'H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
+%File_Path = 'H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
+File_Path = 'H:\MCPL_Data\Test';
 
 %Prop_Z0
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
@@ -28,14 +29,12 @@ RAR_Parameters.Overwrite_Mode = true;
 %% Parameters for MCPL processing to MAT file
 %If events are sorted in descending order of weight with the most significant events at the top of the file. (true = sort)
 Read_Parameters.Sort_Events_By_Weight = true;
-%If events with exactly 0 weighting (represent no photons) are to be removed (true = removed)
+%If events with exactly 0 w5eighting (represent no photons) are to be removed (true = removed)
 Read_Parameters.Remove_Zero_Weights = true;
 %If the temporary files created during processing are deleted (true = delete temp files)
 Read_Parameters.Remove_Temp_Files = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
 Read_Parameters.Skip_Uncompress = false;
-%If using parallel processing to do intermediate conversion/sorting
-Read_Parameters.Multicore = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
 Read_Parameters.Parpool_Num_Cores = 6;
 %Add RAR Parameters to the Read Parameters
@@ -81,15 +80,18 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
     
     % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of files)
-    visdiff(Mat_File_Path{1}, Mat_File_Path_2{1});
+    visdiff(Mat_File_Path{Current_Mat_File}, Mat_File_Path_2{1});
 end
 
+visdiff('H:\MCPL_Data\Test\MCPL_Output_Diffraction_Test_DBL.mat','H:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl-UNCOMPRESSED\MCPL_Output_Diffraction_Test_DBL.mat');
+visdiff('H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.mat','H:\MCPL_Data\DEBUG\sample_C7H5N3O6_4B_7.mat');
+
 % DEBUG
-MF_1 = matfile(Mat_File_Path{1});
-MF_2 = matfile(Mat_File_Path_2{1});
-I = find(Floating_Point_Equal(MF_1.Dx, MF_2.Dx) == 0);
-Energy_1 = MF_1.Energy(:,1);
-Energy_2 = MF_2.Energy(:,1);
-A = sort(Energy_1(I, 1));
-B = sort(Energy_2(I, 1));
-plot(A, B);
+% MF_1 = matfile(Mat_File_Path{1});
+% MF_2 = matfile(Mat_File_Path_2{1});
+% I = find(Floating_Point_Equal(MF_1.Dx, MF_2.Dx) == 0);
+% Energy_1 = MF_1.Energy(:,1);
+% Energy_2 = MF_2.Energy(:,1);
+% A = sort(Energy_1(I, 1));
+% B = sort(Energy_2(I, 1));
+% plot(A, B);
