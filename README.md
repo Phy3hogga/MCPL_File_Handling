@@ -180,18 +180,6 @@ Event data containing multiple individual arrays which are all universally index
 			<td>Pz</td>
 		</tr>
 		<tr>
-			<td>EKinDir_1</td>
-			<td rowspan=3>Compressed Energy + Direction Vectors</td>
-			<td rowspan=3>Single/Double*</td>
-			<td rowspan=3>No</td>
-		</tr>
-		<tr>
-			<td>EKinDir_2</td>
-		</tr>
-		<tr>
-			<td>EKinDir_3</td>
-		</tr>
-		<tr>
 			<td>Energy</td>
 			<td>Energy [KeV]</td>
 			<td>Single/Double*</td>
@@ -220,6 +208,18 @@ Event data containing multiple individual arrays which are all universally index
 			<td>User Specified Flag</td>
 			<td>Integer</td>
 			<td>Yes (If value set)</td>
+		</tr>
+		<tr>
+			<td>EKinDir_1</td>
+			<td rowspan=3>Compressed Energy + Direction Vectors</td>
+			<td rowspan=3>Single/Double*</td>
+			<td rowspan=3>Yes (Default not included)</td>
+		</tr>
+		<tr>
+			<td>EKinDir_2</td>
+		</tr>
+		<tr>
+			<td>EKinDir_3</td>
 		</tr>
 	</tbody>
 </table>
