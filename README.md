@@ -322,12 +322,12 @@ Header contains the information regarding either the MCPL header / data format o
 		<tr>
 			<td>Comments</td>
 			<td>Cell Array</td>
-			<td>Comments in the MCPL data</td>
+			<td>MCPL data output</td>
 		</tr>
 		<tr>
 			<td>Blobs</td>
 			<td>Cell Array</td>
-			<td>Blobs in the MCPL data</td>
+			<td>Blob 1 contains the .instr file, Blob 2 contains parameters</td>
 		</tr>
 		<tr>
 			<td>Valid</td>
