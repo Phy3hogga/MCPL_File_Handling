@@ -146,18 +146,55 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     for Read_Index = 1:length(MCPL_File_List)
         %Path and reference to file
         File_Path = fullfile(MCPL_File_List(Read_Index).folder, filesep, MCPL_File_List(Read_Index).name);
-        disp(strcat("Reading MCPL file : ", File_Path));
+        %Determine how to handle the two different file formats (MCPL / XBD)
+        [~, ~, Extension] = fileparts(File_Path);
+        %% Switches for MCPL and XBD file reading
+        if(strcmpi(Extension, '.mcpl'))
+            disp(strcat("MCPL_To_Mat : Reading MCPL file : ", File_Path));
+            File.Type = 1;
+        elseif(strcmpi(Extension, '.xbd'))
+            disp(strcat("MCPL_To_Mat : Reading XBD file : ", File_Path));
+            File.Type = 2;
+        else
+            error(strcat("MCPL_To_Mat : Unknown file extension for file : ", File_Path));
+        end
         File_ID = fopen(File_Path, 'r');
         %% Read file header
-        disp("Reading MCPL Header");
-        Header = MCPL_Read_Header(File_ID);
+        if(File.Type == 1)
+            disp("MCPL_To_Mat : Reading MCPL Header");
+            Header = MCPL_Read_Header(File_ID);
+        elseif(File.Type == 2)
+            disp("MCPL_To_Mat : Creating placeholder MCPL Header for XBD file");
+            Header.Endian_Switch = 0;
+            Header.Endian.T32 = 'l';
+            Header.Endian.T64 = 'a';
+            Header.MCPL_Version = 3;
+            Header.Particles = 0;
+            Header.Opt_Userflag = 0;
+            Header.Opt_Polarisation = 0;
+            Header.Opt_SinglePrecision = 0;
+            Header.Opt_UniversalPDGCode = 22;
+            Header.Opt_ParticleSize = 64;
+            Header.Opt_UniversalWeight = 0;
+            Header.Opt_Signature = 0 + 1*Header.Opt_SinglePrecision + 2*Header.Opt_Polarisation + 4*Header.Opt_UniversalPDGCode + 8*Header.Opt_UniversalWeight + 16*Header.Opt_Userflag;
+            Header.Source = {'X-ray Binary Data'};
+            Header.Comments = {'Output by COMPONENT: Save_State'};
+            Header.Blobs.Key{1} = 'mccode_instr_file';
+            Header.Blobs.Key{2} = 'mccode_cmd_line';
+            Header.Blobs.Data{1} = 'XBD File: No inbuilt instrument file';
+            Header.Blobs.Data{2} = 'XBD File: No inbuilt instrument cmd line';
+            Header.End = 0;
+            Header.Valid = 1;
+        else
+            error("MCPL_To_MAT : Unknown file type");
+        end
         %If saving raw EKinDir
         Header.Save_EKinDir = Save_EKinDir;
         %Error correction for MCPL files with universal weight flag set
         if(Header.Opt_UniversalWeight)
             if(Header.Sort_Events_By_Weight)
                 Header.Sort_Events_By_Weight = false;
-                disp("MCPL_To_MAT : Can't sort events by weight due to universal weighting.");
+                disp("MCPL_To_MAT : Sorting events by weight disabled due to universal weighting.");
             end
         end
         %Get size of file
@@ -167,7 +204,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         fseek(File_ID, Header.End, 'bof');
         Successful_Close = fclose(File_ID);
         if(Successful_Close == -1)
-            warning(["MCPL file failed to close: ", MCPL_File_List(Read_Index).name]);
+            warning(["MCPL_To_MAT : File failed to close: ", MCPL_File_List(Read_Index).name]);
         end
         %Find size of a single photon's information from header information
         if(Header.Valid)
@@ -185,96 +222,131 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header.Byte_Type = Byte_Type;
             %Tracking the byte position of specific data within a single photon's data
             Byte_Position = 0;
-            Dynamic_Photon_Field = 0;
             %Tracking how many bytes to read for a specific photon in total
-            Photon_Byte_Count = 1;
-            if(Header.Opt_Polarisation)
-                Dynamic_Photon_Field = Dynamic_Photon_Field + 3;
-                Photon_Byte_Count = Photon_Byte_Count + 3 * Byte_Size;
-                %Polarisation data within the photon byte string
+            Photon_Byte_Count = 0;
+            if(File.Type == 1)
+                if(Header.Opt_Polarisation)
+                    Photon_Byte_Count = Photon_Byte_Count + (3 * Byte_Size);
+                    %Polarisation data within the photon byte string
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.Px.Start = Byte_Position;
+                    Byte_Position = Byte_Position + Byte_Size - 1;
+                    Byte_Split.Px.End = Byte_Position;
+
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.Py.Start = Byte_Position;
+                    Byte_Position = Byte_Position + Byte_Size - 1;
+                    Byte_Split.Py.End = Byte_Position;
+
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.Pz.Start = Byte_Position;
+                    Byte_Position = Byte_Position + Byte_Size - 1;
+                    Byte_Split.Pz.End = Byte_Position;
+                end
+                %Addition of extra field; ekindir decompression
+                Photon_Byte_Count = Photon_Byte_Count + (7 * Byte_Size);
+                %Position data within the photon byte string
                 Byte_Position = Byte_Position + 1;
-                Byte_Split.Px.Start = Byte_Position;
+                Byte_Split.X.Start = Byte_Position;
                 Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Px.End = Byte_Position;
+                Byte_Split.X.End = Byte_Position;
 
                 Byte_Position = Byte_Position + 1;
-                Byte_Split.Py.Start = Byte_Position;
+                Byte_Split.Y.Start = Byte_Position;
                 Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Py.End = Byte_Position;
+                Byte_Split.Y.End = Byte_Position;
 
                 Byte_Position = Byte_Position + 1;
-                Byte_Split.Pz.Start = Byte_Position;
+                Byte_Split.Z.Start = Byte_Position;
                 Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Pz.End = Byte_Position;
-            end
-            %Addition of extra field; ekindir decompression
-            Dynamic_Photon_Field = Dynamic_Photon_Field + 8;
-            Photon_Byte_Count = Photon_Byte_Count + 7 * Byte_Size;
-            %Position data within the photon byte string
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.X.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.X.End = Byte_Position;
+                Byte_Split.Z.End = Byte_Position;
 
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.Y.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.Y.End = Byte_Position;
+                %Displacement/Energy Vectors within the photon byte string
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.EKinDir_1.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.EKinDir_1.End = Byte_Position;
 
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.Z.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.Z.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.EKinDir_2.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.EKinDir_2.End = Byte_Position;
 
-            %Displacement/Energy Vectors within the photon byte string
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.EKinDir_1.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.EKinDir_1.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.EKinDir_3.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.EKinDir_3.End = Byte_Position;
 
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.EKinDir_2.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.EKinDir_2.End = Byte_Position;
+                %Time within the photon byte string
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Time.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Time.End = Byte_Position;
 
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.EKinDir_3.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.EKinDir_3.End = Byte_Position;
-
-            %Time within the photon byte string
-            Byte_Position = Byte_Position + 1;
-            Byte_Split.Time.Start = Byte_Position;
-            Byte_Position = Byte_Position + Byte_Size - 1;
-            Byte_Split.Time.End = Byte_Position;
-
-            if(~Header.Opt_UniversalWeight)
-                Dynamic_Photon_Field = Dynamic_Photon_Field + 1;
-                Photon_Byte_Count = Photon_Byte_Count + Byte_Size - 1;
-                %Weight within the photon byte string
+                if(~Header.Opt_UniversalWeight)
+                    Photon_Byte_Count = Photon_Byte_Count + Byte_Size;
+                    %Weight within the photon byte string
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.Weight.Start = Byte_Position;
+                    Byte_Position = Byte_Position + Byte_Size - 1;
+                    Byte_Split.Weight.End = Byte_Position;
+                end
+                %Fixed size data
+                %If PDGCode varies
+                if(Header.Opt_UniversalPDGCode == 0)
+                    Photon_Byte_Count = Photon_Byte_Count + 4;
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.PDGCode.Start = Byte_Position;
+                    Byte_Position = Byte_Position + 4 - 1;
+                    Byte_Split.PDGCode.End = Byte_Position;
+                end
+                %If userflags are present
+                if(Header.Opt_Userflag)
+                    Photon_Byte_Count = Photon_Byte_Count + 4;
+                    Byte_Position = Byte_Position + 1;
+                    Byte_Split.UserFlag.Start = Byte_Position;
+                    Byte_Position = Byte_Position + 4 - 1;
+                    Byte_Split.UserFlag.End = Byte_Position;
+                end
+            elseif(File.Type == 2)
+                Photon_Byte_Count = Photon_Byte_Count + (8 * Byte_Size);
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.X.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.X.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Y.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Y.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Z.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Z.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Dx.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Dx.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Dy.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Dy.End = Byte_Position;
+                Byte_Position = Byte_Position + 1;
+                Byte_Split.Dz.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Dz.End = Byte_Position;
                 Byte_Position = Byte_Position + 1;
                 Byte_Split.Weight.Start = Byte_Position;
                 Byte_Position = Byte_Position + Byte_Size - 1;
                 Byte_Split.Weight.End = Byte_Position;
-            end
-            %Fixed size data
-            %If PDGCode varies
-            if(Header.Opt_UniversalPDGCode == 0)
-                Photon_Byte_Count = Photon_Byte_Count + 4;
                 Byte_Position = Byte_Position + 1;
-                Byte_Split.PDGCode.Start = Byte_Position;
-                Byte_Position = Byte_Position + 4 - 1;
-                Byte_Split.PDGCode.End = Byte_Position;
-            end
-            %If userflags are present
-            if(Header.Opt_Userflag)
-                Photon_Byte_Count = Photon_Byte_Count + 4;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.UserFlag.Start = Byte_Position;
-                Byte_Position = Byte_Position + 4 - 1;
-                Byte_Split.UserFlag.End = Byte_Position;
+                Byte_Split.Energy.Start = Byte_Position;
+                Byte_Position = Byte_Position + Byte_Size - 1;
+                Byte_Split.Energy.End = Byte_Position;
+                %% Calculate number of events within the XBD file
+                Header.Particles = (File.End - Header.End) / Byte_Position;
             end
             %Add additional fields to header
+            Header.File_Type = File.Type;
             Header.Photon_Byte_Count = Photon_Byte_Count;
             Header.Byte_Split = Byte_Split;
             Header.Sort_Events_By_Weight = Sort_Events_By_Weight;
@@ -284,9 +356,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Temp_Output_File_Root = fullfile(MCPL_File_List(Read_Index).folder, filesep, 'TEMPORARY');
             Directory_Creation_Success = Attempt_Directory_Creation(Temp_Output_File_Root);
             if(~Directory_Creation_Success)
-                warning(strcat("Failed to create temporary output directory for: ", MCPL_File_List(Read_Index).name));
+                warning(strcat("MCPL_To_Mat : Failed to create temporary output directory for: ", MCPL_File_List(Read_Index).name));
             end
-            disp("Reading MCPL Data");
+            if(File.Type == 1)
+                disp("MCPL_To_Mat : Reading MCPL Data");
+            elseif(File.Type == 2)
+                disp("MCPL_To_Mat : Reading XBD Data");
+            end
             %% Parallel core processing setup
             if(Parpool_Num_Cores > 1)
                 Parpool = Parpool_Create(Parpool_Num_Cores);
@@ -334,7 +410,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 File_Chunks(1).Chunk = 1;
                 File_Chunks(1).Temp_File_Path = fullfile(strcat(Temp_Output_File_Root, filesep, '1.mat'));
                 File_Chunks(1).Start = 1;
-                File_Chunks(1).End = Header.Particles;
+                File_Chunks(1).End = File.End;
                 File_Chunks(1).Events = Header.Particles;
             end
             %Add chunks to header
@@ -357,7 +433,11 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             end
             
             %% Combine all output file(s)
-            disp("Processing MCPL file into MAT file");
+            if(File.Type == 1)
+                disp("MCPL_To_Mat : Processing MCPL file into MAT file");
+            elseif(File.Type == 2)
+                disp("MCPL_To_Mat : Processing XBD file into MAT file");
+            end
             MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path);
 
             %% Cleanup temporary files (including all files within)
@@ -365,7 +445,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 Temporary_Files_Removed = rmdir(Temp_Output_File_Root, 's');
             end
         else
-            error(strcat("MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
+            error(strcat("MCPL_To_MAT : MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
         end
     end
 end
@@ -379,11 +459,11 @@ function Header = MCPL_Read_Header(File_ID)
         %Verify file version compatibility
         Format_Version = (File_Header(5)-'0')*100 + (File_Header(6)-'0')*10 + (File_Header(7)-'0');
         if(~any(Format_Version == [2,3]))
-            warning(["MCPL file version may not be compatible with this read script: ", MCPL_File_List(File_Index).name]);
+            warning(["MCPL_To_MAT : MCPL file version may not be compatible with this read script: ", MCPL_File_List(File_Index).name]);
         end
         %Warning for version 2 files
         if(Format_Version == 2)
-            warning(["MCPL file version 2 not fully tested for this script, legacy input: ", MCPL_File_List(File_Index).name]);
+            warning(["MCPL_To_MAT : MCPL file version 2 not fully tested for this script, legacy input: ", MCPL_File_List(File_Index).name]);
         end
         %Get computer native endian type
         [~, ~, Computer_Endian] = computer;
@@ -404,7 +484,7 @@ function Header = MCPL_Read_Header(File_ID)
             Endian.T32 = 'l';
             Endian.T64 = 'a';
         else
-            error(["Could not determine endianness for file: ", MCPL_File_List(File_Index).name]);
+            error(["MCPL_To_MAT : Could not determine endianness for file: ", MCPL_File_List(File_Index).name]);
         end
         Header.Endian = Endian;
         % Cleanup
@@ -513,54 +593,95 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     File_ID = fopen(File_Path, 'r');
     %fseek(File_ID, Header.End, 'bof');
     fseek(File_ID, File_Chunk.Start, 'bof');
-    Byte_String = fread(File_ID, Header.Photon_Byte_Count * File_Chunk.Events, 'uint8=>uint8');
+    if(Header.File_Type == 1)
+        File_Data = fread(File_ID, Header.Photon_Byte_Count * File_Chunk.Events, 'uint8=>uint8');
+    elseif(Header.File_Type == 2)
+        File_Data = fread(File_ID, (Header.Photon_Byte_Count / Header.Byte_Size) * File_Chunk.Events, 'double');
+        File_Data = reshape(File_Data, Header.Byte_Size, size(File_Data, 1) / Header.Byte_Size);
+    else
+        error(strcat("MCPL_To_MAT : Unknown file format for reading Chunk: ", num2str(File_Chunk.Chunk)));
+    end
     Successful_Chunk_Close = fclose(File_ID);
     if(Successful_Chunk_Close == -1)
-        warning(strcat("Unsuccessful File Close when Reading Data for Chunk: ", num2str(File_Chunk.Chunk)));
+        warning(strcat("MCPL_To_MAT : Unsuccessful File Close when Reading Data for Chunk: ", num2str(File_Chunk.Chunk)));
     end
     %% Input Handling
-    for Event_Number = 1:File_Chunk.Events
-        %Offset for read start
-        Photon_Offset = (Event_Number - 1) * Header.Photon_Byte_Count;
-
-        %Variable Data
-        if(Header.Opt_Polarisation)
-            Px(Event_Number) = typecast(Byte_String(Header.Byte_Split.Px.Start + Photon_Offset : Header.Byte_Split.Px.End + Photon_Offset), Header.Byte_Type);
-            Py(Event_Number) = typecast(Byte_String(Header.Byte_Split.Py.Start + Photon_Offset : Header.Byte_Split.Py.End + Photon_Offset), Header.Byte_Type);
-            Pz(Event_Number) = typecast(Byte_String(Header.Byte_Split.Pz.Start + Photon_Offset : Header.Byte_Split.Pz.End + Photon_Offset), Header.Byte_Type);
+    if(Header.File_Type == 1)
+        %% MCPL File Read
+        for Event_Number = 1:File_Chunk.Events
+            %Offset for read start
+            Photon_Offset = (Event_Number - 1) * Header.Photon_Byte_Count;
+            
+            %% MCPL Data
+            %Variable Data
+            if(Header.Opt_Polarisation)
+                Px(Event_Number) = typecast(File_Data(Header.Byte_Split.Px.Start + Photon_Offset : Header.Byte_Split.Px.End + Photon_Offset), Header.Byte_Type);
+                Py(Event_Number) = typecast(File_Data(Header.Byte_Split.Py.Start + Photon_Offset : Header.Byte_Split.Py.End + Photon_Offset), Header.Byte_Type);
+                Pz(Event_Number) = typecast(File_Data(Header.Byte_Split.Pz.Start + Photon_Offset : Header.Byte_Split.Pz.End + Photon_Offset), Header.Byte_Type);
+            end
+            X(Event_Number) = typecast(File_Data(Header.Byte_Split.X.Start + Photon_Offset : Header.Byte_Split.X.End + Photon_Offset), Header.Byte_Type);
+            Y(Event_Number) = typecast(File_Data(Header.Byte_Split.Y.Start + Photon_Offset : Header.Byte_Split.Y.End + Photon_Offset), Header.Byte_Type);
+            Z(Event_Number) = typecast(File_Data(Header.Byte_Split.Z.Start + Photon_Offset : Header.Byte_Split.Z.End + Photon_Offset), Header.Byte_Type);
+            EKinDir_1(Event_Number) = typecast(File_Data(Header.Byte_Split.EKinDir_1.Start + Photon_Offset : Header.Byte_Split.EKinDir_1.End + Photon_Offset), Header.Byte_Type);
+            EKinDir_2(Event_Number) = typecast(File_Data(Header.Byte_Split.EKinDir_2.Start + Photon_Offset : Header.Byte_Split.EKinDir_2.End + Photon_Offset), Header.Byte_Type);
+            EKinDir_3(Event_Number) = typecast(File_Data(Header.Byte_Split.EKinDir_3.Start + Photon_Offset : Header.Byte_Split.EKinDir_3.End + Photon_Offset), Header.Byte_Type);
+            Time(Event_Number) = typecast(File_Data(Header.Byte_Split.Time.Start + Photon_Offset : Header.Byte_Split.Time.End + Photon_Offset), Header.Byte_Type);
+            if(~Header.Opt_UniversalWeight)
+                Weight(Event_Number) = typecast(File_Data(Header.Byte_Split.Weight.Start + Photon_Offset : Header.Byte_Split.Weight.End + Photon_Offset), Header.Byte_Type);
+            end
+            %Fixed size data
+            if(Header.Opt_UniversalPDGCode == 0)
+                PDGCode(Event_Number) = typecast(File_Data(Header.Byte_Split.PDGCode.Start + Photon_Offset : Header.Byte_Split.PDGCode.End + Photon_Offset), 'int32');
+            end
+            if(Header.Opt_Userflag)
+                UserFlag(Event_Number) = typecast(File_Data(Header.Byte_Split.UserFlag.Start + Photon_Offset : Header.Byte_Split.UserFlag.End + Photon_Offset), 'uint32');
+            end
+            %% TODO: Adjust endian-ness of byte order
+            if(Header.File_Type == 1 && Header.Endian_Switch)
+                disp("MCPL_To_MAT : WARNING: Verify results, system endianness changed");
+            end
         end
-        X(Event_Number) = typecast(Byte_String(Header.Byte_Split.X.Start + Photon_Offset : Header.Byte_Split.X.End + Photon_Offset), Header.Byte_Type);
-        Y(Event_Number) = typecast(Byte_String(Header.Byte_Split.Y.Start + Photon_Offset : Header.Byte_Split.Y.End + Photon_Offset), Header.Byte_Type);
-        Z(Event_Number) = typecast(Byte_String(Header.Byte_Split.Z.Start + Photon_Offset : Header.Byte_Split.Z.End + Photon_Offset), Header.Byte_Type);
-        EKinDir_1(Event_Number) = typecast(Byte_String(Header.Byte_Split.EKinDir_1.Start + Photon_Offset : Header.Byte_Split.EKinDir_1.End + Photon_Offset), Header.Byte_Type);
-        EKinDir_2(Event_Number) = typecast(Byte_String(Header.Byte_Split.EKinDir_2.Start + Photon_Offset : Header.Byte_Split.EKinDir_2.End + Photon_Offset), Header.Byte_Type);
-        EKinDir_3(Event_Number) = typecast(Byte_String(Header.Byte_Split.EKinDir_3.Start + Photon_Offset : Header.Byte_Split.EKinDir_3.End + Photon_Offset), Header.Byte_Type);
-        Time(Event_Number) = typecast(Byte_String(Header.Byte_Split.Time.Start + Photon_Offset : Header.Byte_Split.Time.End + Photon_Offset), Header.Byte_Type);
-        if(~Header.Opt_UniversalWeight)
-            Weight(Event_Number) = typecast(Byte_String(Header.Byte_Split.Weight.Start + Photon_Offset : Header.Byte_Split.Weight.End + Photon_Offset), Header.Byte_Type);
-        end
-        %Fixed size data
-        if(Header.Opt_UniversalPDGCode == 0)
-            PDGCode(Event_Number) = typecast(Byte_String(Header.Byte_Split.PDGCode.Start + Photon_Offset : Header.Byte_Split.PDGCode.End + Photon_Offset), 'int32');
-        end
-        if(Header.Opt_Userflag)
-            UserFlag(Event_Number) = typecast(Byte_String(Header.Byte_Split.UserFlag.Start + Photon_Offset : Header.Byte_Split.UserFlag.End + Photon_Offset), 'uint32');
-        end
-%% TODO: Adjust endian-ness of byte order
-        if(Header.Endian_Switch)
-            disp("WARNING: Verify results, system endianness changed");
-        end
+        
+        % Unpack EKinDir into Dx, Dy, Dz and Energy components
+        [Dx, Dy, Dz, Energy] = EKinDir_Unpack(EKinDir_1, EKinDir_2, EKinDir_3, Header.MCPL_Version);
+        %% Unit converstions for MCPL files to SI units
+        %Convert event energy to KeV from MeV (leaving EKinDir unchanged)
+        Energy = Energy ./ 1e-3;
+        %Convert cm to m
+        X = X ./100;
+        Y = Y ./100;
+        Z = Z ./100;
+    elseif(Header.File_Type == 2)
+        %% BXD Data
+        X(:) = File_Data(1,:);
+        Y(:) = File_Data(2,:);
+        Z(:) = File_Data(3,:);
+        Dx(:) = File_Data(4,:);
+        Dy(:) = File_Data(5,:);
+        Dz(:) = File_Data(6,:);
+        Weight(:) = File_Data(7,:);
+        Energy(:) = File_Data(8,:);
+%         for Event_Number = 1:File_Chunk.Events
+%             %Offset for read start
+%             Photon_Offset = (Event_Number - 1) * Header.Photon_Byte_Count;
+%             X(Event_Number) = typecast(File_Data(Header.Byte_Split.X.Start + Photon_Offset : Header.Byte_Split.X.End + Photon_Offset), Header.Byte_Type);
+%             Y(Event_Number) = typecast(File_Data(Header.Byte_Split.Y.Start + Photon_Offset : Header.Byte_Split.Y.End + Photon_Offset), Header.Byte_Type);
+%             Z(Event_Number) = typecast(File_Data(Header.Byte_Split.Z.Start + Photon_Offset : Header.Byte_Split.Z.End + Photon_Offset), Header.Byte_Type);
+%             Dx(Event_Number) = typecast(File_Data(Header.Byte_Split.Dx.Start + Photon_Offset : Header.Byte_Split.Dx.End + Photon_Offset), Header.Byte_Type);
+%             Dy(Event_Number) = typecast(File_Data(Header.Byte_Split.Dy.Start + Photon_Offset : Header.Byte_Split.Dy.End + Photon_Offset), Header.Byte_Type);
+%             Dz(Event_Number) = typecast(File_Data(Header.Byte_Split.Dz.Start + Photon_Offset : Header.Byte_Split.Dz.End + Photon_Offset), Header.Byte_Type);
+%             Weight(Event_Number) = typecast(File_Data(Header.Byte_Split.Weight.Start + Photon_Offset : Header.Byte_Split.Weight.End + Photon_Offset), Header.Byte_Type);
+%             Energy(Event_Number) = typecast(File_Data(Header.Byte_Split.Energy.Start + Photon_Offset : Header.Byte_Split.Energy.End + Photon_Offset), Header.Byte_Type);
+%         end
+        %Ensure Dx, Dy, Dz are unit vectors
+        RMS = sqrt(Dx.^2 + Dy.^2 + Dz.^2);
+        disp("MCPL_To_MAT : Converting Dx, Dy, Dz into unit vectors. Requirement for MCPL EKinDir packing.");
+        Dx = Dx./RMS;
+        Dy = Dy./RMS;
+        Dz = Dz./RMS;
+        % Pack Dx, Dy, Dz into EKinDir
+        [EKinDir_1, EKinDir_2, EKinDir_3] = EKinDir_Pack(Dx, Dy, Dz, Energy);
     end
-    
-    %% Unpack EKinDir into Dx, Dy, Dz and Energy components
-    [Dx, Dy, Dz, Energy] = EKinDir_Unpack(EKinDir_1, EKinDir_2, EKinDir_3, Header.MCPL_Version);
-    
-    %Convert event energy to KeV from MeV (leaving EKinDir_3 unchanged)
-    Energy = Energy ./ 1e-3;
-    %Convert cm to m
-    X = X ./100;
-    Y = Y ./100;
-    Z = Z ./100;
     
     %% Sort events by weighting
     if(Header.Sort_Events_By_Weight)
@@ -625,7 +746,6 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Total_Chunk_Events = sum(Chunk_Events(:));
     Max_Chunk_Events = max(Chunk_Events);
 
-    
     if(Header.Sort_Events_By_Weight)
         %For each file, split the weights being read into chunks to read from all files simultaneously
         Weight_Chunk = floor(Max_Chunk_Events / length(Chunk_Matfile_References));
@@ -1036,12 +1156,12 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %Decrement to find the final event again
     File_Write_Index_End = File_Write_Index_End - 1;
     %Display output file progress
-    disp(strcat("Input Events             : ", num2str(Header.Particles)));
-    disp(strcat("Retained Events          : ", num2str(File_Write_Index_End)));
-    disp(strcat("Removed 0 Weight Events  : ", num2str(Removed_Zero_Count)));
+    disp(strcat("MCPL_To_MAT : Input Events             : ", num2str(Header.Particles)));
+    disp(strcat("MCPL_To_MAT : Retained Events          : ", num2str(File_Write_Index_End)));
+    disp(strcat("MCPL_To_MAT : Removed 0 Weight Events  : ", num2str(Removed_Zero_Count)));
     %Warning for mismatch on number of events read / discarded from total
     if((Header.Particles - File_Write_Index_End) ~= Removed_Zero_Count)
-        disp("Warning: Total number of events read and removed zero weight events mismatch.");
+        disp("MCPL_To_MAT : Warning: Total number of events read and removed zero weight events mismatch.");
     end
     %Edit the number of events in the stored file
     Header.Particles = File_Write_Index_End;
