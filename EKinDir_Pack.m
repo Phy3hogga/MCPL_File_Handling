@@ -13,6 +13,12 @@ function [EKinDir_1, EKinDir_2, EKinDir_3] = EKinDir_Pack(Dx, Dy, Dz, Energy)
     if(length(Dx) ~= length(Energy))
         error("EKinDir_Pack : Dx and Energy length mismatch.");
     end
+    %Ensure Dx, Dy, Dz are unit vectors for the packing algorithm (if already unit vectors; this
+    %won't change the value of each vector)
+    RMS = sqrt(Dx.^2 + Dy.^2 + Dz.^2);
+    Dx = Dx./RMS;
+    Dy = Dy./RMS;
+    Dz = Dz./RMS;
     %output (x,y,sign(z)) - default
     EKinDir_1 = Dx;
     EKinDir_2 = Dy;
