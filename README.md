@@ -38,6 +38,8 @@ A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo 
 ## Functions
 ### MCPL_To_Mat
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
+
+***Note:** WinRAR implementation is currently only supported on windows. Compressed .MCPL.GZ files will need to be uncompressed manually and Skip_Uncompress will need setting to true.*
 ```matlab
 %% File path to convert the MCPL file to MAT format
 File_Path = 'D:\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
@@ -357,7 +359,7 @@ Header contains the information regarding either the MCPL header / data format o
 
 ## Installation Requirements / Advice
 ### Compressed MCPL Files (.MCPL.GZ)
-***Note:** WinRAR implementation is only currently only supported on windows.*
+***Note:** WinRAR implementation is currently only supported on windows.*
 
 .MCPL files are automatically compressed into a G-Zip format on creation, for automatic unpacking of the <filename>.MCPL.GZ file format it is strongly advised to have WinRAR 5.0 (or later) installed. In the event that the WinRAR executable (*WinRAR.exe*) is not located on the system enviroment path and fails to be automatically identified as "WinRar.exe", edit the WinRAR_Path variable to point to the appropriate executable. For more information on configuring the WinRAR integration, see the [WinRAR submodule readme](https://github.com/Phy3hogga/WinRAR) for a list of addditional optional arguments.
 ```matlab
