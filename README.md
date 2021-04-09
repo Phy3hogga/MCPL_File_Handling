@@ -124,6 +124,23 @@ end
 These scripts perform the compression / decompression algorithms condensing the energy and direction vectors (Dx, Dy, Dz) into three vectors EKinDir_1, EKinDir_2, EKinDir_3 to reduce filesizes. These functions shouldn't need to be directly called, as they are exclusively used within the scripts listed above when appropriate.
 
 ## Structure of MAT file containing MCPL data
+### File Format
+The .MAT files are created as MAT V7.3 files. To open version 7.3 MAT files in python as Scipy does not support V7.3 format MAT files, you will need the ```h5py``` extension (which requires HDF5 to be installed). HDF5 can be installed by installing the following:
+* libhdf5-7
+* libhdf5-serial-dev
+* python-tables
+
+You *may* also need the following packages depending on operating system:
+* hdf5-tools
+* h5utils
+
+```python
+import numpy as np
+import h5py
+f = h5py.File('MAT_Formateed_MCPL.mat','r')
+X = f.get('data/X')
+X = np.array(X) # For converting to a NumPy array
+```
 ### Event Data
 Event data containing multiple individual arrays which are all universally indexed between 1 and Header.Particles, where an individual index corresponds to a singular event. The data present in the MAT file is shown in the table directly below, the header structure is shown in the subsequent table. 
 
