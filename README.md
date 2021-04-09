@@ -137,7 +137,7 @@ You *may* also need the following packages depending on operating system:
 * hdf5-tools
 * h5utils
 
-Example Opening script for a single variable in the MAT file.
+Example python script for opening a single variable within the MAT file.
 ```python
 import numpy as np
 import h5py
