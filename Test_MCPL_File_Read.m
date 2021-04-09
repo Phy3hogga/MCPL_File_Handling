@@ -34,6 +34,8 @@ Read_Parameters.Remove_Zero_Weights = true;
 Read_Parameters.Remove_Temp_Files = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
 Read_Parameters.Skip_Uncompress = false;
+%If using parallel processing to do intermediate conversion/sorting
+Read_Parameters.Multicore = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
 Read_Parameters.Parpool_Num_Cores = 6;
 %Add RAR Parameters to the Read Parameters
@@ -85,7 +87,7 @@ end
 % DEBUG
 MF_1 = matfile(Mat_File_Path{1});
 MF_2 = matfile(Mat_File_Path_2{1});
-I = find(Floating_Point_Equal(MF_1.Energy, MF_2.Energy) == 0);
+I = find(Floating_Point_Equal(MF_1.Dx, MF_2.Dx) == 0);
 Energy_1 = MF_1.Energy(:,1);
 Energy_2 = MF_2.Energy(:,1);
 A = sort(Energy_1(I, 1));

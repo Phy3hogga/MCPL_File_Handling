@@ -53,6 +53,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Parpool_Num_Cores = 1;
     end
+    %If enabling parallel core reading
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Parpool_Num_Cores', false);
+    if(Struct_Var_Valid)
+        Multicore = Struct_Var_Value;
+    else
+        Multicore = false;
+    end
+        
     %If retaining EKinDir
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Save_EKinDir', false);
     if(Struct_Var_Valid)
@@ -364,7 +372,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 disp("MCPL_To_Mat : Reading XBD Data");
             end
             %% Parallel core processing setup
-            if(Parpool_Num_Cores > 1)
+            if(Parpool_Num_Cores > 1 && Multicore)
                 Parpool = Parpool_Create(Parpool_Num_Cores);
             end
             %If parpool is disabled; requires the number of cores to be assigned to a variable
@@ -385,7 +393,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             end
             %% Photon Data
             Chunks = 1:Interval:Header.Particles;
-            if(length(Chunks) > 1)
+            if(length(Chunks) > 1 && Multicore == true)
                 %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
                 %Either adds an additional chunk or appends a few extra events to the final chunk depending on discrepency
                 if(Chunks(end) ~= Header.Particles)
@@ -419,7 +427,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header_File_Path = fullfile(Temp_Output_File_Root, 'Header.mat');
             save(Header_File_Path, '-v7.3', '-struct', 'Header');
             %% Read file chunks aand dump them to disk, sorted individual chunks by weighting
-            if((Parpool_Num_Cores > 1) && (length(File_Chunks) > 1))
+            if(Multicore && (Parpool_Num_Cores > 1) && (length(File_Chunks) > 1))
                 %Parallel processing
                 parfor Current_File_Chunk = 1:length(File_Chunks)
                     MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
