@@ -3,9 +3,20 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     %% Input handling
     %Argument handling
     if(nargin == 0)
-        error("MCPL_To_MAT requires a file path input");
+        error("MCPL_To_MAT : File path Input Required.");
     elseif(nargin == 1)
-        warning("Using default settings for MCPL_To_Mat");
+        if(~(isstring(MCPL_File_Path) || ischar(MCPL_File_Path)))
+            error("MCPL_To_Mat : Expected File Path to be a single string.");
+        end
+        warning("MCPL_To_Mat : No read parameters supplied, using default settings.");
+    end
+    if(nargin == 2)
+        if(~isstruct(Read_Parameters))
+            error("MCPL_To_Mat : Expected Read Parameters to be a structure.");
+        end
+    end
+    if(~exist('Read_Parameters','var'))
+        Read_Parameters = struct();
     end
     %Skipping decompression
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Skip_Uncompress', false);
@@ -49,52 +60,83 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Save_EKinDir = false;
     end
-    %% Uncompress GZ archive using WinRAR
-    [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
-    if(strcmpi(Extension, '.gz'))
-        %Extraction of GZ archive (if the file format matches)
-        Uncompressed_File_Path = strcat(Directory_Path, filesep, Filename, '-UNCOMPRESS');
-        %Only use RAR_Parameters field if it has been parsed by previous settings structure
-        if(isfield(Read_Parameters, 'RAR_Parameters'))
-            RAR_Parameters = Read_Parameters.RAR_Parameters;
-        else
-            RAR_Parameters = struct();
-        end
-        if(~Skip_Uncompress)
-            Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
-        else
-            Successful_Uncompress = 1;
-        end
-        clear Skip_Uncompress RAR_Parameters;
-        if(~Successful_Uncompress)
-            error('Error uncompressing GZ !bofile format');
-        end
-        MCPL_File_List = {};
-        File_Path_Search = Uncompressed_File_Path;
-        clear Successful_Uncompress Uncompressed_File_Path;
-    elseif(strcmpi(Extension, '.mcpl'))
-        %No extraction required
-        if(isfile(MCPL_File_Path))
-            MCPL_File_List{1} = MCPL_File_Path;
-        else
+
+    %% If the file path supplied is a file
+    if(isfile(MCPL_File_Path))
+        [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
+        %% Switch treatment of file format based on file format
+        if(strcmpi(Extension, '.gz'))
+            %Extraction of GZ archive (if the file format matches)
+            Uncompressed_File_Path = strcat(Directory_Path, filesep, Filename, '-UNCOMPRESSED');
+            %Only use RAR_Parameters field if it has been parsed by previous settings structure
+            if(isfield(Read_Parameters, 'RAR_Parameters'))
+                RAR_Parameters = Read_Parameters.RAR_Parameters;
+            else
+                RAR_Parameters = struct();
+            end
+            if(~Skip_Uncompress)
+                disp("MCPL_To_Mat : Attempting to uncompress .GZ archive");
+                Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
+            else
+                Successful_Uncompress = 1;
+            end
+            clear Skip_Uncompress RAR_Parameters;
+            if(~Successful_Uncompress)
+                error('MCPL_To_Mat : Error uncompressing GZ file format');
+            end
             MCPL_File_List = {};
+            File_Path_Search = Uncompressed_File_Path;
+            clear Successful_Uncompress Uncompressed_File_Path;
+        elseif(strcmpi(Extension, '.mcpl'))
+            %No extraction required, single uncompressed MCPL file supplied
+            MCPL_File_List{1} = MCPL_File_Path;
+            File_Path_Search = MCPL_File_Path;
+        elseif(strcmpi(Extension, '.xbd'))
+            %Single XBD file
+            MCPL_File_List{1} = MCPL_File_Path;
+            File_Path_Search = MCPL_File_Path;
+        else
+            error('MCPL_To_Mat : Unexpected file format');
         end
+    elseif(isfolder(MCPL_File_Path))
+        %If a directory is supplied, search the directory path for MCPL
+        %files
         File_Path_Search = MCPL_File_Path;
+        MCPL_File_List = {};
     else
-        error('Unexpected file format');
+        error('MCPL_To_Mat : Input File or Directory does not exist');
     end
     clear Extension Filename Directory_Path MCPL_File_Path;
 
     %% Find MCPL file(s) that aren't explicitly stated in the original input (if a directory is specified)
     if(isempty(MCPL_File_List))
-        %Find all mcpl file in the directory
-        MCPL_File_List = Search_Files(File_Path_Search, '.mcpl');
+        %Find all mcpl files in the directory
+        MCPL_File_Search = Search_Files(File_Path_Search, '.mcpl');
+        XBD_File_Search = Search_Files(File_Path_Search, '.xbd');
+        %Check directory lists aren't empty
+        if(isequal(MCPL_File_Search, struct()))
+            if(isequal(XBD_File_Search, struct()))
+                error('MCPL_To_Mat : No compatible files found within the directory specified');
+                MCPL_File_List = [];
+            else
+                MCPL_File_List = XBD_File_Search;
+            end
+        else
+            if(isequal(XBD_File_Search, struct()))
+                MCPL_File_List = MCPL_File_Search;
+            else
+                MCPL_File_List = [MCPL_File_Search, XBD_File_Search];
+            end
+        end
     else
-        %Get file path as a directory structure
+        %Get file path to file as a directory structure
         MCPL_File_List = dir(File_Path_Search);
     end
     if(isempty(fieldnames(MCPL_File_List)))
-        error('No mcpl files found');
+        error('MCPL_To_Mat : No .MCPL files found');
+    end
+    if(isempty(MCPL_File_List))
+        error('MCPL_To_Mat : No .MCPL files found within Directory');
     end
     clear File_Path_Search;
     

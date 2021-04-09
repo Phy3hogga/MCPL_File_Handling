@@ -11,7 +11,7 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
 File_Path = 'H:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
-
+File_Path = 'H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
 
 %Prop_Z0
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
