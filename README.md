@@ -213,7 +213,7 @@ Event data containing multiple individual arrays which are all universally index
 			<td>EKinDir_1</td>
 			<td rowspan=3>Compressed Energy + Direction Vectors</td>
 			<td rowspan=3>Single/Double*</td>
-			<td rowspan=3>Yes (Not included by default, can be recalculated from Energy and Direction vectors)</td>
+			<td rowspan=3>Yes (Default not included)</td>
 		</tr>
 		<tr>
 			<td>EKinDir_2</td>
