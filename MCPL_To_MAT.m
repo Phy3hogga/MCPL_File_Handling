@@ -28,18 +28,26 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Remove_Zero_Weights = true;
     end
-    %Removal of 0 weight events
+    %Removal of temporary files created by the parallel core reading
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Remove_Temp_Files', true);
     if(Struct_Var_Valid)
         Remove_Temp_Files = Struct_Var_Value;
     else
         Remove_Temp_Files = true;
     end
+    %Number of cores used for the parallel core reading
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Parpool_Num_Cores', 1);
     if(Struct_Var_Valid)
         Parpool_Num_Cores = Struct_Var_Value;
     else
         Parpool_Num_Cores = 1;
+    end
+    %If retaining EKinDir
+    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Save_EKinDir', false);
+    if(Struct_Var_Valid)
+        Save_EKinDir = Struct_Var_Value;
+    else
+        Save_EKinDir = false;
     end
     %% Uncompress GZ archive using WinRAR
     [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
@@ -101,6 +109,8 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         %% Read file header
         disp("Reading MCPL Header");
         Header = MCPL_Read_Header(File_ID);
+        %If saving raw EKinDir
+        Header.Save_EKinDir = Save_EKinDir;
         %Error correction for MCPL files with universal weight flag set
         if(Header.Opt_UniversalWeight)
             if(Header.Sort_Events_By_Weight)
@@ -625,9 +635,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Merged_File_Reference.Dz(Total_Chunk_Events, 1) = Empty_Byte_Type;
     Merged_File_Reference.Energy(Total_Chunk_Events, 1) = Empty_Byte_Type;
     Merged_File_Reference.Time(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    %Merged_File_Reference.EKinDir_1(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    %Merged_File_Reference.EKinDir_2(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    %Merged_File_Reference.EKinDir_3(Total_Chunk_Events, 1) = Empty_Byte_Type;
+    if(Header.Save_EKinDir)
+        Merged_File_Reference.EKinDir_1(Total_Chunk_Events, 1) = Empty_Byte_Type;
+        Merged_File_Reference.EKinDir_2(Total_Chunk_Events, 1) = Empty_Byte_Type;
+        Merged_File_Reference.EKinDir_3(Total_Chunk_Events, 1) = Empty_Byte_Type;
+    end
     if(~Header.Opt_UniversalWeight)
         Merged_File_Reference.Weight(Total_Chunk_Events, 1) = Empty_Byte_Type;
     end
@@ -767,9 +779,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(Write_Initial_Index:Write_Final_Index);
                         Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(Write_Initial_Index:Write_Final_Index);
                         Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(Write_Initial_Index:Write_Final_Index);
-                        %Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(Write_Initial_Index:Write_Final_Index);
-                        %Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(Write_Initial_Index:Write_Final_Index);
-                        %Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(Write_Initial_Index:Write_Final_Index);
+                        if(Header.Save_EKinDir)
+                            Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(Write_Initial_Index:Write_Final_Index);
+                            Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(Write_Initial_Index:Write_Final_Index);
+                            Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(Write_Initial_Index:Write_Final_Index);
+                        end
                         if(~Header.Opt_UniversalWeight)
                             Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(Write_Initial_Index:Write_Final_Index);
                         end
@@ -853,9 +867,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
             Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(:);
             Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(:);
             Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(:);
-            %Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
-            %Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
-            %Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
+            if(Header.Save_EKinDir)
+                Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
+                Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
+                Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
+            end
             if(~Header.Opt_UniversalWeight)
                 Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(:);
             end
@@ -923,9 +939,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                 Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(1:Data_Write_Index_End);
                 Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(1:Data_Write_Index_End);
                 Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(1:Data_Write_Index_End);
-                %Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(1:Data_Write_Index_End);
-                %Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(1:Data_Write_Index_End);
-                %Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(1:Data_Write_Index_End);
+                if(Header.Save_EKinDir)
+                    Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(1:Data_Write_Index_End);
+                    Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(1:Data_Write_Index_End);
+                    Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(1:Data_Write_Index_End);
+                end
                 if(~Header.Opt_UniversalWeight)
                     Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(1:Data_Write_Index_End);
                 end
@@ -958,9 +976,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         Merged_File_Reference.Dz(File_Write_Index_End:Header.Particles) = [];
         Merged_File_Reference.Energy(File_Write_Index_End:Header.Particles) = [];
         Merged_File_Reference.Time(File_Write_Index_End:Header.Particles) = [];
-        %Merged_File_Reference.EKinDir_1(File_Write_Index_End:Header.Particles) = [];
-        %Merged_File_Reference.EKinDir_2(File_Write_Index_End:Header.Particles) = [];
-        %Merged_File_Reference.EKinDir_3(File_Write_Index_End:Header.Particles) = [];
+        if(Header.Save_EKinDir)
+            Merged_File_Reference.EKinDir_1(File_Write_Index_End:Header.Particles) = [];
+            Merged_File_Reference.EKinDir_2(File_Write_Index_End:Header.Particles) = [];
+            Merged_File_Reference.EKinDir_3(File_Write_Index_End:Header.Particles) = [];
+        end
         if(~Header.Opt_UniversalWeight)
             Merged_File_Reference.Weight(File_Write_Index_End:Header.Particles) = [];
         end
