@@ -20,7 +20,8 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
             error("Filter_MCPL_MAT_Data: Missing variables X, Y, Z or Weight within original MAT file");
         end
         if(all(ismember({'Header'}, Mat_File_Variables)))
-%% TODO attempt to create header?
+            %Load Header
+            Header = Mat_File_Reference.Header;
         else
             error("Filter_MCPL_MAT_Data: Missing MCPL Header within original MAT file");
         end
