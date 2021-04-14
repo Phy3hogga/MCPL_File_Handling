@@ -339,8 +339,10 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
                             File_Data(Delete_Index_List) = [];
                             %Calculate next index to write within the file
                             Write_Index_End = Write_Index_Start + length(File_Data) - 1;
-                            %Duplicate the filtered events to a seperate MAT file
-                            Filtered_Mat_File_Reference.(Mat_File_Variables{Current_Variable})(Write_Index_Start:Write_Index_End, 1) = File_Data;
+                            %Duplicate the filtered events to a seperate MAT file (if data exists)
+                            if(~isempty(File_Data))
+                                Filtered_Mat_File_Reference.(Mat_File_Variables{Current_Variable})(Write_Index_Start:Write_Index_End, 1) = File_Data;
+                            end
                             %Increment write index to stop overwriting
                             Write_Index_Start = Write_Index_End + 1;
                         end
