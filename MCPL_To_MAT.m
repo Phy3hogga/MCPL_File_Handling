@@ -643,12 +643,33 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
             if(Header.Opt_Userflag)
                 UserFlag(Event_Number) = typecast(File_Data(Header.Byte_Split.UserFlag.Start + Photon_Offset : Header.Byte_Split.UserFlag.End + Photon_Offset), 'uint32');
             end
-            %% TODO: Adjust endian-ness of byte order
-            if(Header.File_Type == 1 && Header.Endian_Switch)
-                disp("MCPL_To_MAT : WARNING: Verify results, system endianness changed");
-            end
         end
-        
+        %% Adjust endian-ness of byte order (Untested due to development system constraints)
+        if(Header.Endian_Switch)
+            if(Header.Opt_Polarisation)
+                Px = swapbytes(Px);
+                Py = swapbytes(Py);
+                Pz = swapbytes(Pz);
+            end
+            X = swapbytes(X);
+            Y = swapbytes(Y);
+            Z = swapbytes(Z);
+            EKinDir_1 = swapbytes(EKinDir_1);
+            EKinDir_2 = swapbytes(EKinDir_2);
+            EKinDir_3 = swapbytes(EKinDir_3);
+            Time = swapbytes(Time);
+            if(~Header.Opt_UniversalWeight)
+                Weight = swapbytes(Weight);
+            end
+            %Fixed size data
+            if(Header.Opt_UniversalPDGCode == 0)
+                PDGCode = swapbytes(PDGCode);
+            end
+            if(Header.Opt_Userflag)
+                UserFlag = swapbytes(UserFlag);
+            end
+            warning("MCPL_To_MAT : Untested Feature : System endianness changed, Verify data using MCPL Tool.");
+        end
         % Unpack EKinDir into Dx, Dy, Dz and Energy components
         [Dx, Dy, Dz, Energy] = EKinDir_Unpack(EKinDir_1, EKinDir_2, EKinDir_3, Header.MCPL_Version);
         %% Unit converstions for MCPL files to SI units
