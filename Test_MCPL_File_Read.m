@@ -70,7 +70,6 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     %Filters.Weight.Min = 0.05;
     %Filters.Weight.Max = 35;
     %Create filepath for the filtered MAT file
-    [Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
     Filtered_Mat_File_Path{Current_Mat_File} = fullfile(Output_Directory, strcat(Filename, '-Filtered', Extension));
     Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
     
