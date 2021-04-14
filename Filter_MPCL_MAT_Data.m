@@ -299,15 +299,7 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
                 end
 
                 %% Get subset of sequential reads (reduces number of individual reads within the original dataset)
-                %Translate logical index to linear index (get unique entries for good measure)
-                %Allowed_Index_List = unique(find(Allowed_Index_List == true));
-                %Find the relative indicies where groups of sequential retained events lie
-                Sequential_Write_Group_Start = strfind(Allowed_Index_List', [0, 1]) + 1;
-                Sequential_Write_Group_End = strfind(Allowed_Index_List', [1, 0]);
-                %Ensure the length of the two arrays are identical
-                if(length(Sequential_Write_Group_End) < length(Sequential_Write_Group_Start))
-                    Sequential_Write_Group_End(length(Sequential_Write_Group_End):length(Sequential_Write_Group_Start)) = Sequential_Write_Group_Start(length(Sequential_Write_Group_End):length(Sequential_Write_Group_Start));
-                end
+                [Sequential_Write_Group_Start, Sequential_Write_Group_End] = Find_Logical_Groups(Allowed_Index_List);
                 %Write valid data only
                 Write_Index_Start = 1;
                 for Current_File_Chunk = 1:length(Sequential_Write_Group_Start)
