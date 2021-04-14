@@ -662,18 +662,6 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         Dz(:) = File_Data(6,:);
         Weight(:) = File_Data(7,:);
         Energy(:) = File_Data(8,:);
-%         for Event_Number = 1:File_Chunk.Events
-%             %Offset for read start
-%             Photon_Offset = (Event_Number - 1) * Header.Photon_Byte_Count;
-%             X(Event_Number) = typecast(File_Data(Header.Byte_Split.X.Start + Photon_Offset : Header.Byte_Split.X.End + Photon_Offset), Header.Byte_Type);
-%             Y(Event_Number) = typecast(File_Data(Header.Byte_Split.Y.Start + Photon_Offset : Header.Byte_Split.Y.End + Photon_Offset), Header.Byte_Type);
-%             Z(Event_Number) = typecast(File_Data(Header.Byte_Split.Z.Start + Photon_Offset : Header.Byte_Split.Z.End + Photon_Offset), Header.Byte_Type);
-%             Dx(Event_Number) = typecast(File_Data(Header.Byte_Split.Dx.Start + Photon_Offset : Header.Byte_Split.Dx.End + Photon_Offset), Header.Byte_Type);
-%             Dy(Event_Number) = typecast(File_Data(Header.Byte_Split.Dy.Start + Photon_Offset : Header.Byte_Split.Dy.End + Photon_Offset), Header.Byte_Type);
-%             Dz(Event_Number) = typecast(File_Data(Header.Byte_Split.Dz.Start + Photon_Offset : Header.Byte_Split.Dz.End + Photon_Offset), Header.Byte_Type);
-%             Weight(Event_Number) = typecast(File_Data(Header.Byte_Split.Weight.Start + Photon_Offset : Header.Byte_Split.Weight.End + Photon_Offset), Header.Byte_Type);
-%             Energy(Event_Number) = typecast(File_Data(Header.Byte_Split.Energy.Start + Photon_Offset : Header.Byte_Split.Energy.End + Photon_Offset), Header.Byte_Type);
-%         end
         %Ensure Dx, Dy, Dz are unit vectors
         RMS = sqrt(Dx.^2 + Dy.^2 + Dz.^2);
         disp("MCPL_To_MAT : Converting Dx, Dy, Dz into unit vectors. Requirement for MCPL EKinDir packing.");
