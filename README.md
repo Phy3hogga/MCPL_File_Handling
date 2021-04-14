@@ -302,7 +302,7 @@ Header contains the information regarding either the MCPL header / data format o
 		<tr>
 			<td>Opt_ParticleSize</td>
 			<td>Integer</td>
-			<td>Number of bytes that contain a single event</td>
+			<td>Number of bytes that contain data relating to a single event</td>
 		</tr>
 		<tr>
 			<td>Opt_UniversalWeight</td>
@@ -348,11 +348,6 @@ Header contains the information regarding either the MCPL header / data format o
 			<td>Byte_Type</td>
 			<td>String</td>
 			<td>Data type used within the dynamic size MCPL files ('Single' / 'Double')</td>
-		</tr>
-		<tr>
-			<td>Photon_Byte_Count</td>
-			<td>Integer</td>
-			<td>Number of bytes that contain all data related to a single event</td>
 		</tr>
 		<tr>
 			<td>Byte_Split</td>
