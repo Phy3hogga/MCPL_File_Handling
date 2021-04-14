@@ -296,7 +296,7 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
             
             %% Split file into virtual chunks if neccecary to avoid running out of memory
             [~, System_Memory] = memory;
-            Interval = floor((System_Memory.PhysicalMemory.Available * 0.0004) / (Header.Photon_Byte_Count + (3 * Header.Byte_Size)));
+            Interval = floor((System_Memory.PhysicalMemory.Available * 0.0004) / (Header.Opt_ParticleSize + (3 * Header.Byte_Size)));
             Chunks = 1:Interval:Header.Particles;
             if(length(Chunks) > 1)
                 %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
