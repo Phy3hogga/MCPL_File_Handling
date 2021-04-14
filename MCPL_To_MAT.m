@@ -1166,6 +1166,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     %Edit the number of events in the stored file
     Header.Particles = File_Write_Index_End;
+    %Remove File_Chunks from the header data
+    Header.File_Chunks = [];
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
     Merged_File_Reference.Header = Header;
 end
