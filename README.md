@@ -369,11 +369,6 @@ Header contains the information regarding either the MCPL header / data format o
 			<td>Boolean</td>
 			<td>If removing all insignificant events from the MAT file where event weightings are equal to exactly 0.</td>
 		</tr>
-		<tr>
-			<td>File_Chunks</td>
-			<td>Structure</td>
-			<td>Tracking tempoary files, byte positions in the original file, number of events</td>
-		</tr>
 	</tbody>
 </table>
 
