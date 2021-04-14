@@ -10,9 +10,9 @@ File_Path = 'D:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Pola
 %64 bit data for testing
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
-File_Path = 'H:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
+File_Path = 'D:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 %File_Path = 'H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
-File_Path = 'H:\MCPL_Data\Test';
+%File_Path = 'H:\MCPL_Data\Test';
 
 %Prop_Z0
 %File_Path = 'D:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
@@ -22,7 +22,7 @@ File_Path = 'H:\MCPL_Data\Test';
 
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
-RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
+%RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
 %By default overwrite any files already existing
 RAR_Parameters.Overwrite_Mode = true;
 
@@ -70,28 +70,15 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     %Filters.Weight.Min = 0.05;
     %Filters.Weight.Max = 35;
     %Create filepath for the filtered MAT file
-    Filtered_Mat_File_Path{Current_Mat_File} = strcat(Mat_File_Path{Current_Mat_File}, '-Filtered');
-    %Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
+    [Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
+    Filtered_Mat_File_Path{Current_Mat_File} = fullfile(Output_Directory, strcat(Filename, '-Filtered', Extension));
+    Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
     
     %Convert MAT file back to an MCPL file
-    MCPL_File = MAT_To_MCPL(Mat_File_Path{Current_Mat_File}, MCPL_Filepath, Display_Write_Progress);
+    MCPL_File = MAT_To_MCPL(Filtered_Mat_File, MCPL_Filepath, Display_Write_Progress);
     
-    %Test extraction of MCPL file
-    Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
-    
-    % Compare initial MAT and recreated MAT files match (would expect only the header to differ due to different chunk splitting of files)
-    visdiff(Mat_File_Path{Current_Mat_File}, Mat_File_Path_2{1});
+    %Test extraction of MCPL file (only for comparison if not filtering data)
+    %Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
+    % Compare initial MAT and recreated MAT files match
+    %visdiff(Mat_File_Path{Current_Mat_File}, Mat_File_Path_2{1});
 end
-
-visdiff('H:\MCPL_Data\Test\MCPL_Output_Diffraction_Test_DBL.mat','H:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl-UNCOMPRESSED\MCPL_Output_Diffraction_Test_DBL.mat');
-visdiff('H:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.mat','H:\MCPL_Data\DEBUG\sample_C7H5N3O6_4B_7.mat');
-
-% DEBUG
-% MF_1 = matfile(Mat_File_Path{1});
-% MF_2 = matfile(Mat_File_Path_2{1});
-% I = find(Floating_Point_Equal(MF_1.Dx, MF_2.Dx) == 0);
-% Energy_1 = MF_1.Energy(:,1);
-% Energy_2 = MF_2.Energy(:,1);
-% A = sort(Energy_1(I, 1));
-% B = sort(Energy_2(I, 1));
-% plot(A, B);
