@@ -705,8 +705,8 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         EKinDir_3 = EKinDir_3(Sorted_Index);
         if(Header.Opt_Polarisation)
             Px = Px(Sorted_Index);
-            Py = Px(Sorted_Index);
-            Pz = Px(Sorted_Index);
+            Py = Py(Sorted_Index);
+            Pz = Pz(Sorted_Index);
         end
         if(Header.Opt_UniversalPDGCode == 0)
             PDGCode = PDGCode(Sorted_Index);
