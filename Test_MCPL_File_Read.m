@@ -31,6 +31,8 @@ RAR_Parameters.Overwrite_Mode = true;
 Read_Parameters.Sort_Events_By_Weight = true;
 %If events with exactly 0 w5eighting (represent no photons) are to be removed (true = removed)
 Read_Parameters.Remove_Zero_Weights = true;
+%If retaining EKinDir data (reccomended setting to true if wanting to later use subsequent data in simulations)
+Read_Parameters.Save_EKinDir = true;
 %If the temporary files created during processing are deleted (true = delete temp files)
 Read_Parameters.Remove_Temp_Files = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
@@ -39,10 +41,12 @@ Read_Parameters.Skip_Uncompress = false;
 Read_Parameters.Parpool_Num_Cores = 6;
 %Add RAR Parameters to the Read Parameters
 Read_Parameters.RAR_Parameters = RAR_Parameters;
+
 Display_Write_Progress = true;
 %% Convert MCPL file to MAT file format
+tic
 Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
-
+toc
 %Perform work on the MAT file
 for Current_Mat_File = 1:length(Mat_File_Path)
     %Create new filepath for the MAT file to end up in
@@ -67,15 +71,20 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     Filters.Energy.Min = 0;
     Filters.Energy.Max = 130;
     %Weighting
-    %Filters.Weight.Min = 0.05;
+    Filters.Weight.Min = 0.1;
     %Filters.Weight.Max = 35;
     %Create filepath for the filtered MAT file
     Filtered_Mat_File_Path{Current_Mat_File} = fullfile(Output_Directory, strcat(Filename, '-Filtered', Extension));
+    
+    %Filter the file according to parameters previously set
+    tic
     Filtered_Mat_File = Filter_MPCL_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
+    toc
     
     %Convert MAT file back to an MCPL file
+    tic
     MCPL_File = MAT_To_MCPL(Filtered_Mat_File, MCPL_Filepath, Display_Write_Progress);
-    
+    toc
     %Test extraction of MCPL file (only for comparison if not filtering data)
     %Mat_File_Path_2 = MCPL_To_MAT(MCPL_File, Read_Parameters);
     % Compare initial MAT and recreated MAT files match
