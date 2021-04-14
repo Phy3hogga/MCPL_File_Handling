@@ -243,57 +243,102 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
             warning("No data remains after filtering, skipping writing file. Returning raw data file as output.");
             Filtered_Mat_File_Path = Mat_File_Path;
         else
+            %% Valid data remains; display final output
             Remaining_Events = sum(Allowed_Index_List);
-            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(length(Allowed_Index_List) - Remaining_Events), " of ", num2str(length(Allowed_Index_List)), " Events"));
-            %Create filtered MAT file
+            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(length(Allowed_Index_List) - Remaining_Events), " Total of ", num2str(length(Allowed_Index_List)), " Events"));
+            
+            %% Create filtered MAT file
             Filtered_Mat_File_Reference = matfile(Filtered_Mat_File_Path);
             Filtered_Mat_File_Reference.Properties.Writable = true;
             
             %% TODO: Logic for performing file operations on disk only
+            %% TODO: Logic for updating the filters
+            %Calculate the maximum loaded amount of data at any given time
             Build_In_Memory = true;
+            [~, System_Memory] = memory;
+            Interval_Memory = floor((System_Memory.PhysicalMemory.Available * 0.4) / (Header.Photon_Byte_Count + (3 * Header.Byte_Size)));
+            
+            %% Get subset of sequential reads (reduces number of individual reads within the original dataset)
+            [Sequential_Write_Group_Start, Sequential_Write_Group_End] = Find_Logical_Groups(Allowed_Index_List);
+            
+            %% Preallocate variables within the Filtered MAT file
+            if(Header.Opt_SinglePrecision)
+                Empty_Byte_Type = single(0);
+            else
+                Empty_Byte_Type = double(0);
+            end
+            if(Header.Opt_Polarisation)
+                Filtered_Mat_File_Reference.Px(Remaining_Events, 1) = Empty_Byte_Type;
+                Filtered_Mat_File_Reference.Py(Remaining_Events, 1) = Empty_Byte_Type;
+                Filtered_Mat_File_Reference.Pz(Remaining_Events, 1) = Empty_Byte_Type;
+            end
+            Filtered_Mat_File_Reference.X(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Y(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Z(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Dx(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Dy(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Dz(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Energy(Remaining_Events, 1) = Empty_Byte_Type;
+            Filtered_Mat_File_Reference.Time(Remaining_Events, 1) = Empty_Byte_Type;
+            if(Header.Save_EKinDir)
+                Filtered_Mat_File_Reference.EKinDir_1(Remaining_Events, 1) = Empty_Byte_Type;
+                Filtered_Mat_File_Reference.EKinDir_2(Remaining_Events, 1) = Empty_Byte_Type;
+                Filtered_Mat_File_Reference.EKinDir_3(Remaining_Events, 1) = Empty_Byte_Type;
+            end
+            if(~Header.Opt_UniversalWeight)
+                Filtered_Mat_File_Reference.Weight(Remaining_Events, 1) = Empty_Byte_Type;
+            end
+            if(Header.Opt_UniversalPDGCode == 0)
+                Filtered_Mat_File_Reference.PDGCode(Remaining_Events, 1) = int32(0);
+            end
+            if(Header.Opt_Userflag)
+                Filtered_Mat_File_Reference.UserFlag(Remaining_Events, 1) = uint32(0);
+            end
+            
             %If copying the file and removing entries
             if(Build_In_Memory)
-                
+                %Write valid data only
+                Write_Index_Start = 1;
+                tic
+                for Current_File_Chunk = 1:length(Sequential_Write_Group_Start)
+                    %Calculate next index to write within the file
+                    Write_Index_End = Write_Index_Start + length(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk)) - 1;
+                    %Duplicate the filtered events file contents straight from disk to a seperate MAT file
+                    if(Header.Opt_Polarisation)
+                        Filtered_Mat_File_Reference.Px(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Px(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                        Filtered_Mat_File_Reference.Py(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Py(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                        Filtered_Mat_File_Reference.Pz(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Pz(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    end
+                    Filtered_Mat_File_Reference.X(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.X(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Y(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Y(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Z(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Z(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Dx(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Dx(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Dy(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Dy(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Dz(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Dz(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Energy(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Energy(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    Filtered_Mat_File_Reference.Time(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Time(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    if(Header.Save_EKinDir)
+                        Filtered_Mat_File_Reference.EKinDir_1(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.EKinDir_1(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                        Filtered_Mat_File_Reference.EKinDir_2(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.EKinDir_2(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                        Filtered_Mat_File_Reference.EKinDir_3(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.EKinDir_3(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    end
+                    if(~Header.Opt_UniversalWeight)
+                        Filtered_Mat_File_Reference.Weight(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.Weight(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    end
+                    if(Header.Opt_UniversalPDGCode == 0)
+                        Filtered_Mat_File_Reference.PDGCode(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.PDGCode(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    end
+                    if(Header.Opt_Userflag)
+                        Filtered_Mat_File_Reference.UserFlag(Write_Index_Start:Write_Index_End, 1) = Mat_File_Reference.UserFlag(Sequential_Write_Group_Start(Current_File_Chunk):Sequential_Write_Group_End(Current_File_Chunk), 1);
+                    end
+                    %Increment write index to stop overwriting
+                    Write_Index_Start = Write_Index_End + 1;
+                end
+                toc
             end
             %If copying on disk directly
             if(~Build_In_Memory)
-                %Preallocate variables within the Filtered MAT file
-                if(Header.Opt_SinglePrecision)
-                    Empty_Byte_Type = single(0);
-                else
-                    Empty_Byte_Type = double(0);
-                end
-                if(Header.Opt_Polarisation)
-                    Filtered_Mat_File_Reference.Px(Remaining_Events, 1) = Empty_Byte_Type;
-                    Filtered_Mat_File_Reference.Py(Remaining_Events, 1) = Empty_Byte_Type;
-                    Filtered_Mat_File_Reference.Pz(Remaining_Events, 1) = Empty_Byte_Type;
-                end
-                Filtered_Mat_File_Reference.X(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Y(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Z(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Dx(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Dy(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Dz(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Energy(Remaining_Events, 1) = Empty_Byte_Type;
-                Filtered_Mat_File_Reference.Time(Remaining_Events, 1) = Empty_Byte_Type;
-                if(Header.Save_EKinDir)
-                    Filtered_Mat_File_Reference.EKinDir_1(Remaining_Events, 1) = Empty_Byte_Type;
-                    Filtered_Mat_File_Reference.EKinDir_2(Remaining_Events, 1) = Empty_Byte_Type;
-                    Filtered_Mat_File_Reference.EKinDir_3(Remaining_Events, 1) = Empty_Byte_Type;
-                end
-                if(~Header.Opt_UniversalWeight)
-                    Filtered_Mat_File_Reference.Weight(Remaining_Events, 1) = Empty_Byte_Type;
-                end
-                if(Header.Opt_UniversalPDGCode == 0)
-                    Filtered_Mat_File_Reference.PDGCode(Remaining_Events, 1) = int32(0);
-                end
-                if(Header.Opt_Userflag)
-                    Filtered_Mat_File_Reference.UserFlag(Remaining_Events, 1) = uint32(0);
-                end
-
-                %% Get subset of sequential reads (reduces number of individual reads within the original dataset)
-                [Sequential_Write_Group_Start, Sequential_Write_Group_End] = Find_Logical_Groups(Allowed_Index_List);
-                %Write valid data only
+                %Keep track of current index being written
                 Write_Index_Start = 1;
                 tic
                 for Current_File_Chunk = 1:length(Sequential_Write_Group_Start)
