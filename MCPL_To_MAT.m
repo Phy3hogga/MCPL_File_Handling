@@ -149,7 +149,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         File_Path = fullfile(MCPL_File_List(Read_Index).folder, filesep, MCPL_File_List(Read_Index).name);
         %Determine how to handle the two different file formats (MCPL / XBD)
         [~, ~, Extension] = fileparts(File_Path);
-        %% Switches for MCPL and XBD file reading
+        %% Switches for MCPL and XBD file reading (File.Type = 1 for MCPL, File.Type = 2 for XBD)
         if(strcmpi(Extension, '.mcpl'))
             disp(strcat("MCPL_To_Mat : Reading MCPL file : ", File_Path));
             File.Type = 1;
