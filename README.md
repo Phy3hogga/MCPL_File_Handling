@@ -39,7 +39,10 @@ A series of Matlab scripts for translating and manipulating **M**onte-**C**arlo 
 ### MCPL_To_Mat
 Converts a binary .MCPL file to a matlab-friendly .MAT file format.
 
-***Note:** WinRAR implementation is currently only supported on windows. On other operating systems compressed .MCPL.GZ files will need to be uncompressed manually and Skip_Uncompress will need setting to true.*
+***Note:** WinRAR implementation is currently only supported on windows/unix. On other operating systems compressed .MCPL.GZ files will need to be uncompressed manually and Skip_Uncompress will need setting to true.*
+
+***Note:** For optimising execution for large datasets, Parpool_Num_Cores will need changing based on the specs of the computer you are running this code on. To reach optimal execution speeds, use the fastest random-access read/write storage medium available, then find the maximum number of cores that just reaches the point of throttling the drive usage.*
+
 ```matlab
 %% File path to convert the MCPL file to MAT format
 File_Path = 'D:\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
