@@ -255,8 +255,39 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
                 Copy_Success = copyfile(Mat_File_Path, Filtered_Mat_File_Path);
                 if(Copy_Success)
                     %Find the relative indicies where groups of sequential retained events lie
-                    Sequential_Delete_Group_Start = strfind(~Allowed_Index_List', [0, 1]) + 1;
-                    Sequential_Delete_Group_End = strfind(~Allowed_Index_List', [1, 0]);
+                    [Sequential_Delete_Group_Start, Sequential_Delete_Group_End] = Find_Logical_Groups(~Allowed_Index_List);
+                    if(~isempty(Sequential_Delete_Group_Start) && ~isempty(Sequential_Delete_Group_End))
+                        %Delete rows of data from the file backwards (don't want indicies changing going up the file)
+                        for Current_Removal_Index = length(Sequential_Delete_Group_Start):-1:1
+                            if(Header.Opt_Polarisation)
+                                Merged_File_Reference.Px(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index), 1) = [];
+                                Merged_File_Reference.Py(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index), 1) = [];
+                                Merged_File_Reference.Pz(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index), 1) = [];
+                            end
+                            Merged_File_Reference.X(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Y(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Z(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Dx(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Dy(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Dz(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Energy(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            Merged_File_Reference.Time(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            if(Header.Save_EKinDir)
+                                Merged_File_Reference.EKinDir_1(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                                Merged_File_Reference.EKinDir_2(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                                Merged_File_Reference.EKinDir_3(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            end
+                            if(~Header.Opt_UniversalWeight)
+                                Merged_File_Reference.Weight(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            end
+                            if(Header.Opt_UniversalPDGCode == 0)
+                                Merged_File_Reference.PDGCode(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            end
+                            if(Header.Opt_Userflag)
+                                Merged_File_Reference.UserFlag(Sequential_Delete_Group_Start(Current_Removal_Index):Sequential_Delete_Group_End(Current_Removal_Index)) = [];
+                            end
+                        end
+                    end
                 else
                     %Attempt to create the file line-by-line instead on failed copy
                     Build = true;
