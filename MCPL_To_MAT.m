@@ -348,7 +348,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             end
             %Add additional fields to header
             Header.File_Type = File.Type;
-            Header.Photon_Byte_Count = Photon_Byte_Count;
+            if(isfield(Header, 'Opt_ParticleSize'))
+                if(Header.Opt_ParticleSize ~= Photon_Byte_Count)
+                    warning("MCPL To MAT : Particle size listed in file doesn't match split data");
+                end
+            else
+                Header.Opt_ParticleSize = Header.Opt_ParticleSize;
+            end
             Header.Byte_Split = Byte_Split;
             Header.Sort_Events_By_Weight = Sort_Events_By_Weight;
             Header.Remove_Zero_Weights = Remove_Zero_Weights;
@@ -376,8 +382,8 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             %Calculate file chunk interval depending on available system memory and the total file size
             %Addition of 3 fields for unpacking of EKinDir(E,x,y,z) to E, Dir(x,y,z)
             %Memory compensation factor of 40% use for additional data handling overhead while processing
-            Interval_Memory = floor(((System_Memory.PhysicalMemory.Available * 0.4) / Parpool.NumWorkers) / (Photon_Byte_Count + (3 * Byte_Size)));
-            Interval_File = floor((File.Data / Parpool.NumWorkers) / (Photon_Byte_Count + (3 * Byte_Size)));
+            Interval_Memory = floor(((System_Memory.PhysicalMemory.Available * 0.4) / Parpool.NumWorkers) / (Header.Opt_ParticleSize + (3 * Byte_Size)));
+            Interval_File = floor((File.Data / Parpool.NumWorkers) / (Header.Opt_ParticleSize + (3 * Byte_Size)));
             %Change chunk interval based on memory available and file size
             if(Interval_Memory < Interval_File)
                 Interval = Interval_Memory;
@@ -398,13 +404,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 end
                 %Calculate dynamic and corrected interval
                 Interval = Chunks(2:end) - Chunks(1:end-1);
-                File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1),'Temp_File_Path', fullfile(strcat(Temp_Output_File_Root, filesep, arrayfun(@num2str, 1:1:length(Chunks)-1, 'UniformOutput', 0), '.mat')), 'Start', num2cell(((Chunks(1:end-1)-1) * Photon_Byte_Count) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Photon_Byte_Count + Header.End + 1), 'Events', num2cell(Interval));
+                File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1),'Temp_File_Path', fullfile(strcat(Temp_Output_File_Root, filesep, arrayfun(@num2str, 1:1:length(Chunks)-1, 'UniformOutput', 0), '.mat')), 'Start', num2cell(((Chunks(1:end-1)-1) * Header.Opt_ParticleSize) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Header.Opt_ParticleSize + Header.End + 1), 'Events', num2cell(Interval));
                 %End of file correction (should be a single Event)
                 if(File_Chunks(end).End ~= File.End)
                     %Adjust final chunk end if required
                     File_Chunks(end).End = File.End;
                     %Adjust chunk size as per end of file
-                    File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Photon_Byte_Count;
+                    File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Header.Opt_ParticleSize;
                 end
             else
                 %Fallback if insignificant number of events to break into chunks for multicore
@@ -595,9 +601,9 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     %fseek(File_ID, Header.End, 'bof');
     fseek(File_ID, File_Chunk.Start, 'bof');
     if(Header.File_Type == 1)
-        File_Data = fread(File_ID, Header.Photon_Byte_Count * File_Chunk.Events, 'uint8=>uint8');
+        File_Data = fread(File_ID, Header.Opt_ParticleSize * File_Chunk.Events, 'uint8=>uint8');
     elseif(Header.File_Type == 2)
-        File_Data = fread(File_ID, (Header.Photon_Byte_Count / Header.Byte_Size) * File_Chunk.Events, 'double');
+        File_Data = fread(File_ID, (Header.Header.Opt_ParticleSize / Header.Byte_Size) * File_Chunk.Events, 'double');
         File_Data = reshape(File_Data, Header.Byte_Size, size(File_Data, 1) / Header.Byte_Size);
     else
         error(strcat("MCPL_To_MAT : Unknown file format for reading Chunk: ", num2str(File_Chunk.Chunk)));
@@ -611,7 +617,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         %% MCPL File Read
         for Event_Number = 1:File_Chunk.Events
             %Offset for read start
-            Photon_Offset = (Event_Number - 1) * Header.Photon_Byte_Count;
+            Photon_Offset = (Event_Number - 1) * Header.Opt_ParticleSize;
             
             %% MCPL Data
             %Variable Data
