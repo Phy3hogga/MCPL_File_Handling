@@ -1,7 +1,6 @@
 %% Reads MCPL file and converts it to a MAT file
 function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     %% Input handling
-    %Argument handling
     if(nargin == 0)
         error("MCPL_To_MAT : File path Input Required.");
     elseif(nargin == 1)
