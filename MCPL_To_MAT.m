@@ -940,9 +940,9 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         File_Write_Index_End = File_Write_Index + length(Weight_Table.File_Index(Write_Initial_Index:Write_Final_Index)) - 1;
 
                         if(Header.Opt_Polarisation)
-                            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.File_Row(Write_Initial_Index:Write_Final_Index);
+                            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(Write_Initial_Index:Write_Final_Index);
+                            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(Write_Initial_Index:Write_Final_Index);
+                            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(Write_Initial_Index:Write_Final_Index);
                         end
                         Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(Write_Initial_Index:Write_Final_Index);
                         Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(Write_Initial_Index:Write_Final_Index);
