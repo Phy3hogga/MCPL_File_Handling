@@ -52,15 +52,39 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Parpool_Num_Cores = 1;
     end
-        
-    %If retaining EKinDir
+    %If using a datastore or not
+    [~, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Datastore_Override', false);
+    if(Struct_Var_Valid)
+        Datastore = false;
+    else
+        Datastore = true;
+    end
+    %If changing the temporary directory for using datastores
+    [Struct_Var_Value, Struct_Var_Valid, Struct_Var_Default_Used] = Verify_Structure_Input(Read_Parameters, 'Temp_Directory', '');
+    if(Struct_Var_Valid && ~Struct_Var_Default_Used)
+        if(~isfolder(Struct_Var_Value))
+            User_Input = input('Temporary Directory does not exist, create? (Y / N): ', 's');
+            if(strcmpi(User_Input, 'Y'))
+                Directory_Create_Success = Attempt_Directory_Creation(Struct_Var_Value);
+                if(~Directory_Create_Success)
+                    error("MCPL_To_MAT : Failed to create temporary directory");
+                end
+            else
+                error("MCPL_To_MAT : Ending Execution.");
+            end
+        end
+        setenv('TEMP', Struct_Var_Value);
+        setenv('TMP', Struct_Var_Value);
+    end
+    %If retaining EKinDir in the output files
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Save_EKinDir', false);
     if(Struct_Var_Valid)
         Save_EKinDir = Struct_Var_Value;
     else
         Save_EKinDir = false;
     end
-
+    clear Struct_Var_Value Struct_Var_Valid Struct_Var_Default_Used;
+    
     %% If the file path supplied is a file
     if(isfile(MCPL_File_Path))
         [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
@@ -187,6 +211,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header.Valid = 1;
         else
             error("MCPL_To_MAT : Unknown file type");
+        end
+        %If using a datastore or not
+        if(Datastore)
+            %Using datastore
+            Header.Datastore = true;
+        else
+            %Using manual splitting (much slower; not advised)
+            Header.Datastore = false;
         end
         %If saving raw EKinDir
         Header.Save_EKinDir = Save_EKinDir;
@@ -430,7 +462,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 parfor Current_File_Chunk = 1:length(File_Chunks)
                     MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
                 end
-                Parpool_Delete();
             else
                 %Single core processing
                 for Current_File_Chunk = 1:length(File_Chunks)
@@ -445,10 +476,18 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 disp("MCPL_To_Mat : Processing XBD file into MAT file");
             end
             MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path);
-
+            
+            %% Close parpool
+            if(Parpool_Num_Cores > 1)
+                Parpool_Delete();
+            end
+            
             %% Cleanup temporary files (including all files within)
             if(Remove_Temp_Files)
                 Temporary_Files_Removed = rmdir(Temp_Output_File_Root, 's');
+                if(~Temporary_Files_Removed)
+                    warning(strcat("MCPL_To_MAT : Failed to delete temporary directory: ", Temp_Output_File_Root));
+                end
             end
         else
             error(strcat("MCPL_To_MAT : MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
@@ -693,8 +732,8 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         [EKinDir_1, EKinDir_2, EKinDir_3] = EKinDir_Pack(Dx, Dy, Dz, Energy);
     end
     
-    %% Sort events by weighting
-    if(Header.Sort_Events_By_Weight)
+    %% Sort events by weighting (pre-sorting for datastore isn't required)
+    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
         %Insert relevant data into table for sorting (ignoring other fields)
         Event_Table = Create_Event_Table(Header, File_Chunk.Events);
         Event_Table.X = X;
@@ -748,6 +787,39 @@ end
 function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %File_Chunk data loading from header
     File_Chunks = Header.File_Chunks;
+    
+    %% Datastore Processing - default
+    if(Header.Datastore)
+        %% Parallel core processing setup
+        %Datastore directory
+        Datastore_Directory_Path = fullfile(fileparts(File_Path), 'Datastore');
+        %Load datastore files
+        File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
+        %Remove zero weights if enabled
+        if(Header.Remove_Zero_Weights)
+            Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
+            Removed_Zero_Count = gather(sum(Index(:)));
+            File_Data_Store(Index,:) = [];
+        else
+            Removed_Zero_Count = 0;
+        end
+        %Sort table if enabled
+        if(Header.Sort_Events_By_Weight)
+            [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+        end
+        %Ensure the output directory is clear
+        if(isfolder(Datastore_Directory_Path))
+            disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
+            rmdir(Datastore_Directory_Path, 's');
+            Attempt_Directory_Creation(Datastore_Directory_Path);
+        end
+        %Write processed datastore data to files
+        write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
+        %Ensure the datastore partitions are ordered correctly, replace chunk files for re-combination
+        Chunk_Files = Order_Partition(Datastore_Directory_Path);
+        Header.Chunk_Files = Chunk_Files;
+        %Move on to using the standard file combination method to combine the datastore files
+    end
     Chunk_Files = {File_Chunks(:).Temp_File_Path};
     %Load matfile references to each file containing a chunk of processed data
     Chunk_Matfile_References = cellfun(@matfile, Chunk_Files, 'UniformOutput', false);
@@ -756,7 +828,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Total_Chunk_Events = sum(Chunk_Events(:));
     Max_Chunk_Events = max(Chunk_Events);
 
-    if(Header.Sort_Events_By_Weight)
+    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
         %For each file, split the weights being read into chunks to read from all files simultaneously
         Weight_Chunk = floor(Max_Chunk_Events / length(Chunk_Matfile_References));
         Weight_Table_Length = (Weight_Chunk + 1) * length(Chunk_Matfile_References);
@@ -764,7 +836,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         %For each file, read the entire file
         Weight_Table_Length = Max_Chunk_Events;
     end
-    
+
     %Create table for sorting weights
     Weight_Table = Create_Event_Table(Header, Weight_Table_Length);
     %Store relative position of each chunk in the weight table
@@ -822,9 +894,9 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         Merged_File_Reference.UserFlag(Total_Chunk_Events, 1) = uint32(0);
     end
     clear Empty_Byte_Type;
-    
+
     %% Read chunks while some files still have rows left to read
-    if(Header.Sort_Events_By_Weight)
+    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
         % Sorting data from chunks into a single file
         while(any(Read_Event))
             %Re-check files that still need reading
@@ -1176,10 +1248,22 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     %Edit the number of events in the stored file
     Header.Particles = File_Write_Index_End;
+    
     %Remove File_Chunks from the header data
     Header.File_Chunks = [];
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
     Merged_File_Reference.Header = Header;
+    
+    %% Datastore write function (local to parent to save on memory duplication)
+    function Write_Data(info, data)
+        %Turn table into structure
+        data = table2struct(data);
+        %Turn vector structure into a scalar structure containing vector data
+        data = Structure_Vector_To_Scalar(data);
+        data.Datastore_Partition_Information = info;
+        %Write data to file
+        save(info.SuggestedFilename, '-v7.3', '-struct', 'data');
+    end
 end
 
 %% Creates and allocates memory for an event table (initiates with NaN variables)
@@ -1280,6 +1364,78 @@ function [Weight_Table, Removed_Zero_Count] = Remove_Zero_Weights(Weight_Table, 
         Removed_Zero_Count = 0;
     end
 end
+
+%% Order datastore partition files
+function File_Chunks = Order_Partition(Datastore_Directory_Path)
+    %% Validate and Order the datastore partition files
+    %Find partition files in the Datastore directory
+    Files = flip(Search_Files(Datastore_Directory_Path, '.mat'));
+    %Track number of partitions, partition index and variable length for each file
+    Number_Of_Partitions = zeros(size(Files));
+    Partition_Index = zeros(size(Files));
+    Data_Length = zeros(size(Files));
+    %Open references to all mat files
+    Matfile_Partition_References = cellfun(@matfile, fullfile({Files.folder}, {Files.name}), 'UniformOutput', false);
+    for Current_Reference = 1:length(Matfile_Partition_References)
+        %Check datastore partition information exists in the partition file, load
+        Mat_File_Variables = whos(Matfile_Partition_References{Current_Reference});
+        if(~contains('Datastore_Partition_Information', {Mat_File_Variables.name}))
+            error("MCPL_To_MAT : Datastore_Partition_Information missing from Datastore Partition");
+        end
+        Datastore_Partition_Information = Matfile_Partition_References{Current_Reference}.Datastore_Partition_Information;
+        %Remove datastore from the variable list in memory as it's now been verfied to exist and has been read
+        Mat_File_Variables(strcmp({Mat_File_Variables.name}, 'Datastore_Partition_Information')) = [];
+        %Get number of total partitions
+        if(~isfield(Datastore_Partition_Information, 'NumberOfPartitions'))
+            error("MCPL_To_MAT : Datastore_Partition_Information missing NumberOfPartitions from Datastore Partition Information");
+        end
+        Number_Of_Partitions(Current_Reference) = Datastore_Partition_Information.NumberOfPartitions;
+        %Get current partition
+        if(~isfield(Datastore_Partition_Information, 'PartitionIndex'))
+            error("MCPL_To_MAT : Datastore_Partition_Information missing PartitionIndex from Datastore Partition Information");
+        end
+        Partition_Index(Current_Reference) = Datastore_Partition_Information.PartitionIndex;
+        %Get length of data in all fields
+        Size_1 = zeros(length(Mat_File_Variables),1);
+        Size_2 = zeros(length(Mat_File_Variables),1);
+        for Current_Field = 1:length(Mat_File_Variables)
+            Size_1(Current_Field) = Mat_File_Variables(Current_Field).size(1);
+            Size_2(Current_Field) = Mat_File_Variables(Current_Field).size(2);
+        end
+        if (~(range(Size_1(:)) == 0 && range(Size_2(:)) == 0))
+            error("MCPL_To_MAT : Mismatch in variable sizes.");
+        end
+        if(mean(Size_1(:)) == 1)
+            if(mean(Size_2(:)) == 1)
+                Current_Data_Length = 1;
+            else
+                Current_Data_Length = Size_2(1);
+            end
+        else
+            if(mean(Size_2(:)) == 1)
+                Current_Data_Length = Size_1(1);
+            else
+                error("MCPL_To_MAT : 2D variables found within partition file, expected one dimensional data.");
+            end
+        end
+        Data_Length(Current_Reference) = Current_Data_Length;
+    end
+    %Check number of partitions from each file matches each other
+    if(range(Number_Of_Partitions) ~= 0)
+        error("MCPL_To_MAT : Mismatch between Datastore_Partition_Information partitions and the number of partition files.");
+    end
+    %Check partitions are sequential
+    [Partition_Index, Sorted_Index] = sort(Partition_Index, 'ascend');
+    if(sum(diff(Partition_Index)==1) ~= numel(Partition_Index) - 1)
+        error("MCPL_To_MAT : Sorted Partitions aren't sequential, missing partition files.");
+    end
+    %Sort Files into order
+    Files = Files(Sorted_Index);
+    Data_Length = Data_Length(Sorted_Index);
+    %% Recreate File_Chunks structure
+    File_Chunks = struct('Chunk', num2cell(1:1:length(Files)),'Temp_File_Path', fullfile({Files.folder}, {Files.name}), 'Start', 0, 'End', 0, 'Events', num2cell(Data_Length));
+end
+
 
 %% REFERENCE FOR READING GZIP FROM FILESTREAM; UNUSED BUT POTENITAL UPGRADE IN FUTURE
 %% https://www.cs.usfca.edu/~parrt/doc/java/JavaIO-notes.pdf
