@@ -52,13 +52,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Parpool_Num_Cores = 1;
     end
-    %If using a datastore or not
-    [~, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Datastore_Override', false);
-    if(Struct_Var_Valid)
-        Datastore = false;
-    else
-        Datastore = true;
-    end
     %If changing the temporary directory for using datastores
     [Struct_Var_Value, Struct_Var_Valid, Struct_Var_Default_Used] = Verify_Structure_Input(Read_Parameters, 'Temp_Directory', '');
     if(Struct_Var_Valid && ~Struct_Var_Default_Used)
@@ -211,14 +204,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header.Valid = 1;
         else
             error("MCPL_To_MAT : Unknown file type");
-        end
-        %If using a datastore or not
-        if(Datastore)
-            %Using datastore
-            Header.Datastore = true;
-        else
-            %Using manual splitting (much slower; not advised)
-            Header.Datastore = false;
         end
         %If saving raw EKinDir
         Header.Save_EKinDir = Save_EKinDir;
@@ -731,44 +716,6 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         % Pack Dx, Dy, Dz into EKinDir
         [EKinDir_1, EKinDir_2, EKinDir_3] = EKinDir_Pack(Dx, Dy, Dz, Energy);
     end
-    
-    %% Sort events by weighting (pre-sorting for datastore isn't required)
-    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
-        %Insert relevant data into table for sorting (ignoring other fields)
-        Event_Table = Create_Event_Table(Header, File_Chunk.Events);
-        Event_Table.X = X;
-        Event_Table.Y = Y;
-        Event_Table.Z = Z;
-        Event_Table.Weight = Weight;
-        Event_Table.Energy = Energy;
-        Event_Table.File_Row = (1:1:File_Chunk.Events)';
-        %Sort data
-        [~, Sorted_Index] = sortrows(Event_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
-        %sort individual data fields
-        Weight = Weight(Sorted_Index);
-        Energy = Energy(Sorted_Index);
-        Time = Time(Sorted_Index);
-        X = X(Sorted_Index);
-        Y = Y(Sorted_Index);
-        Z = Z(Sorted_Index);
-        Dx = Dx(Sorted_Index);
-        Dy = Dy(Sorted_Index);
-        Dz = Dz(Sorted_Index);
-        EKinDir_1 = EKinDir_1(Sorted_Index);
-        EKinDir_2 = EKinDir_2(Sorted_Index);
-        EKinDir_3 = EKinDir_3(Sorted_Index);
-        if(Header.Opt_Polarisation)
-            Px = Px(Sorted_Index);
-            Py = Py(Sorted_Index);
-            Pz = Pz(Sorted_Index);
-        end
-        if(Header.Opt_UniversalPDGCode == 0)
-            PDGCode = PDGCode(Sorted_Index);
-        end
-        if(Header.Opt_Userflag)
-            UserFlag = UserFlag(Sorted_Index);
-        end
-    end
 
     %% Save file chunk to a temporary file for combination later
     save(File_Chunk.Temp_File_Path, '-v7.3', 'Weight', 'Energy', 'Time', 'X', 'Y', 'Z', 'Dx', 'Dy', 'Dz', 'EKinDir_1', 'EKinDir_2', 'EKinDir_3');
@@ -788,38 +735,36 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %File_Chunk data loading from header
     File_Chunks = Header.File_Chunks;
     
-    %% Datastore Processing - default
-    if(Header.Datastore)
-        %% Parallel core processing setup
-        %Datastore directory
-        Datastore_Directory_Path = fullfile(fileparts(File_Path), 'Datastore');
-        %Load datastore files
-        File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
-        %Remove zero weights if enabled
-        if(Header.Remove_Zero_Weights)
-            Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
-            Removed_Zero_Count = gather(sum(Index(:)));
-            File_Data_Store(Index,:) = [];
-        else
-            Removed_Zero_Count = 0;
-        end
-        %Sort table if enabled
-        if(Header.Sort_Events_By_Weight)
-            [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
-        end
-        %Ensure the output directory is clear
-        if(isfolder(Datastore_Directory_Path))
-            disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
-            rmdir(Datastore_Directory_Path, 's');
-            Attempt_Directory_Creation(Datastore_Directory_Path);
-        end
-        %Write processed datastore data to files
-        write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
-        %Ensure the datastore partitions are ordered correctly, replace chunk files for re-combination
-        Chunk_Files = Order_Datastore_Partitions(Datastore_Directory_Path);
-        Header.Chunk_Files = Chunk_Files;
-        %Move on to using the standard file combination method to combine the datastore files
+    %% Datastore processing
+    %Datastore directory
+    Datastore_Directory_Path = fullfile(fileparts(File_Path), 'Datastore');
+    %Load datastore files
+    File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
+    %Remove zero weights if enabled
+    if(Header.Remove_Zero_Weights)
+        Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
+        Removed_Zero_Count = gather(sum(Index(:)));
+        File_Data_Store(Index,:) = [];
+    else
+        Removed_Zero_Count = 0;
     end
+    %Sort table if enabled
+    if(Header.Sort_Events_By_Weight)
+        [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+    end
+    %Ensure the output directory is clear
+    if(isfolder(Datastore_Directory_Path))
+        disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
+        rmdir(Datastore_Directory_Path, 's');
+        Attempt_Directory_Creation(Datastore_Directory_Path);
+    end
+    %Write processed datastore data to files
+    write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
+    %Ensure the datastore partitions are ordered correctly, replace chunk files for re-combination
+    Chunk_Files = Order_Datastore_Partitions(Datastore_Directory_Path);
+    Header.Chunk_Files = Chunk_Files;
+    
+    %% Recombination of the different partitions
     Chunk_Files = {File_Chunks(:).Temp_File_Path};
     %Load matfile references to each file containing a chunk of processed data
     Chunk_Matfile_References = cellfun(@matfile, Chunk_Files, 'UniformOutput', false);
@@ -827,28 +772,6 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Chunk_Events = [File_Chunks(:).Events];
     Total_Chunk_Events = sum(Chunk_Events(:));
     Max_Chunk_Events = max(Chunk_Events);
-
-    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
-        %For each file, split the weights being read into chunks to read from all files simultaneously
-        Weight_Chunk = floor(Max_Chunk_Events / length(Chunk_Matfile_References));
-        Weight_Table_Length = (Weight_Chunk + 1) * length(Chunk_Matfile_References);
-    else
-        %For each file, read the entire file
-        Weight_Table_Length = Max_Chunk_Events;
-    end
-
-    %Create table for sorting weights
-    Weight_Table = Create_Event_Table(Header, Weight_Table_Length);
-    %Store relative position of each chunk in the weight table
-    Weight_Table_Position = 1;
-    %Track current row within the file
-    Current_File_Row = zeros(size(Chunk_Matfile_References));
-    %Track remaining rows after a chunk is sorted and some unsorted data remains
-    Current_File_Row_Offset = zeros(size(Chunk_Matfile_References));
-    %Track unsorted possitions chunk position after sorting
-    Sorted_List_Final_Chunk_Position = NaN(size(Chunk_Matfile_References));
-    %Logical index for which file needs reading
-    Read_Event = ones(size(Chunk_Events), 'logical');
 
     %Index of current row within the file to write to
     File_Write_Index = 1;
@@ -895,311 +818,73 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     clear Empty_Byte_Type;
 
-    %% Read chunks while some files still have rows left to read
-    if(Header.Sort_Events_By_Weight && ~Header.Datastore)
-        % Sorting data from chunks into a single file
-        while(any(Read_Event))
-            %Re-check files that still need reading
-            Read_Values = find(Read_Event == true);
-            %If any files need reading still
-            if(any(Read_Values))
-                for Read_Chunk_Index = 1:length(Read_Values)
-                    Current_File = Read_Values(Read_Chunk_Index);
-                    %Exception for initial reading of not having to add an index
-                    Start_File_Row = Current_File_Row(Current_File) + 1;
-                    %Don't need to read this file; all entries processed
-                    if(Start_File_Row == Chunk_Events(Current_File))
-                        Read_Event(Current_File) = 0;
-                    end
-                    End_File_Row = Start_File_Row + Weight_Chunk - Current_File_Row_Offset(Current_File);
-                    %If finished reading the file; skip reading more data in future (also clip to the number of lines left in the file)
-                    if(End_File_Row >= Chunk_Events(Current_File))
-                        %Don't need to read this file; all entries processed
-                        Read_Event(Current_File) = 0;
-                        %Verify end of file row is used; overwrite larger values as sanity check
-                        End_File_Row = Chunk_Events(Current_File);
-                    end
-                    %Only place new data when valid indicies are presented
-                    if(End_File_Row >= Start_File_Row)
-                        %Add results to table
-                        End_Weight_Table_Position = Weight_Table_Position + (End_File_Row - Start_File_Row);
-                        Weight_Table.File_Index(Weight_Table_Position:End_Weight_Table_Position) = Current_File;
-                        Weight_Table.File_Row(Weight_Table_Position:End_Weight_Table_Position) = Start_File_Row:1:End_File_Row;
-                        if(Header.Opt_Polarisation)
-                            Weight_Table.Px(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Px(Start_File_Row:End_File_Row, 1);
-                            Weight_Table.Py(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Py(Start_File_Row:End_File_Row, 1);
-                            Weight_Table.Pz(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Pz(Start_File_Row:End_File_Row, 1);
-                        end
-                        Weight_Table.X(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.X(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Y(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Y(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Z(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Z(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Dx(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Dx(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Dy(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Dy(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Dz(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Dz(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Energy(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Energy(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.Time(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Time(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.EKinDir_1(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.EKinDir_1(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.EKinDir_2(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.EKinDir_2(Start_File_Row:End_File_Row, 1);
-                        Weight_Table.EKinDir_3(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.EKinDir_3(Start_File_Row:End_File_Row, 1);
-                        if(~Header.Opt_UniversalWeight)
-                            Weight_Table.Weight(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.Weight(Start_File_Row:End_File_Row, 1);
-                        end
-                        if(Header.Opt_UniversalPDGCode == 0)
-                            Weight_Table.PDGCode(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.PDGCode(Start_File_Row:End_File_Row, 1);
-                        end
-                        if(Header.Opt_Userflag)
-                            Weight_Table.UserFlag(Weight_Table_Position:End_Weight_Table_Position) = Chunk_Matfile_References{Current_File}.UserFlag(Start_File_Row:End_File_Row, 1);
-                        end
-                        %Store current row
-                        Current_File_Row(Current_File) = End_File_Row;
-                        %Iterate by chunk size for next file
-                        Weight_Table_Position = End_Weight_Table_Position + 1;
-                    end
-                end
-                %Reset write position in Weight_Table to the first row (circular buffer)
-                Weight_Table_Position = 1;
-                
-                %Remove weight events with exactly 0 weighting
-                if(Header.Remove_Zero_Weights)
-                    [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
-                    Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
-                end
-                %Sort by weight followed by other elements a sub sort of file row (if two weights are identical but are out of order) in the file
-                [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
-                
-                %Re-check files that still need reading
-                Read_Values = find(Read_Event == true);
-                %Find the indicies of NaN elements
-                NaN_Elements = find(isnan(Weight_Table.Weight));
-                %Find the linear index in the sorted list of the last entry from each file
-                Sorted_List_Final_Chunk_Position(:) = NaN;
-                for Read_Chunk_Index = 1:length(Read_Values)
-                    File_Line_Check = Current_File_Row(Read_Values(Read_Chunk_Index));
-                    while isnan(Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index)))
-                        %Safety catch to stop accidental overwriting
-                        if(isnan(Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index))))
-                            File_Line_Check_Index = find((Weight_Table.File_Index == Read_Values(Read_Chunk_Index)) & (Weight_Table.File_Row == File_Line_Check));
-                            %Assign value if not NaN
-                            if(~isnan(Weight_Table.Weight(File_Line_Check_Index)))
-                                Sorted_List_Final_Chunk_Position(Read_Values(Read_Chunk_Index)) = File_Line_Check_Index;
-                            end
-                            File_Line_Check = File_Line_Check - 1;
-                        end
-                    end
-                end
-                %Verify not all indicies are NaN
-                if(~all(isnan(Sorted_List_Final_Chunk_Position)))
-                    %Find final valid entry
-                    [Last_Entry_For_File, ~] = nanmin(Sorted_List_Final_Chunk_Position);
-                    if(Last_Entry_For_File > 1)
-                        %can write from index 1:Last_Entry_For_File - 1; as the final element will need comparing with next chunk
-                        Write_Final_Index = Last_Entry_For_File - 1;
-                    else
-                        Write_Final_Index = Last_Entry_For_File;
-                    end
-                    
-                    %Remove any NaN elements (located in top half of table after sorting) from writing to file
-                    if(any(NaN_Elements))
-                        Write_Initial_Index = NaN_Elements(end) + 1;
-                    else
-                        Write_Initial_Index = 1;
-                    end
-                    
-                    %Sense-check linear indicies (it is possible for all elements to have been written last iteration due to the delay in the read / iteration cycle)
-                    if(Write_Initial_Index <= Write_Final_Index)
-                        %Write to file
-                        File_Write_Index_End = File_Write_Index + length(Weight_Table.File_Index(Write_Initial_Index:Write_Final_Index)) - 1;
-                        
-                        if(Header.Opt_Polarisation)
-                            Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(Write_Initial_Index:Write_Final_Index);
-                        end
-                        Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(Write_Initial_Index:Write_Final_Index);
-                        Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(Write_Initial_Index:Write_Final_Index);
-                        if(Header.Save_EKinDir)
-                            Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(Write_Initial_Index:Write_Final_Index);
-                            Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(Write_Initial_Index:Write_Final_Index);
-                        end
-                        if(~Header.Opt_UniversalWeight)
-                            Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(Write_Initial_Index:Write_Final_Index);
-                        end
-                        if(Header.Opt_UniversalPDGCode == 0)
-                            Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(Write_Initial_Index:Write_Final_Index);
-                        end
-                        if(Header.Opt_Userflag)
-                            Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(Write_Initial_Index:Write_Final_Index);
-                        end
-                        
-                        %Increment for next pass
-                        File_Write_Index = File_Write_Index_End + 1;
-                        
-                        %Reset position for inserting next read chunks (stops duplication of data when reaching the end of files if not all overwritten)
-                        Weight_Table.File_Index(1:Write_Final_Index) = NaN;
-                        Weight_Table.File_Row(1:Write_Final_Index) = NaN;
-                        if(Header.Opt_Polarisation)
-                            Weight_Table.Px(1:Write_Final_Index) = NaN;
-                            Weight_Table.Py(1:Write_Final_Index) = NaN;
-                            Weight_Table.Pz(1:Write_Final_Index) = NaN;
-                        end
-                        Weight_Table.X(1:Write_Final_Index) = NaN;
-                        Weight_Table.Y(1:Write_Final_Index) = NaN;
-                        Weight_Table.Z(1:Write_Final_Index) = NaN;
-                        Weight_Table.Dx(1:Write_Final_Index) = NaN;
-                        Weight_Table.Dy(1:Write_Final_Index) = NaN;
-                        Weight_Table.Dz(1:Write_Final_Index) = NaN;
-                        Weight_Table.Energy(1:Write_Final_Index) = NaN;
-                        Weight_Table.Time(1:Write_Final_Index) = NaN;
-                        Weight_Table.EKinDir_1(1:Write_Final_Index) = NaN;
-                        Weight_Table.EKinDir_2(1:Write_Final_Index) = NaN;
-                        Weight_Table.EKinDir_3(1:Write_Final_Index) = NaN;
-                        if(~Header.Opt_UniversalWeight)
-                            Weight_Table.Weight(1:Write_Final_Index) = NaN;
-                        end
-                        if(Header.Opt_UniversalPDGCode == 0)
-                            Weight_Table.PDGCode(1:Write_Final_Index) = NaN;
-                        end
-                        if(Header.Opt_Userflag)
-                            Weight_Table.UserFlag(1:Write_Final_Index) = NaN;
-                        end
-                    else
-                        %%Disabled warning; not found to be useful
-                        %disp("Warning: Final Index larger than Initial Index when combining files.");
-                    end
-                    %Find all remaining instances of file references to find the read offset for each file
-                    for Current_File = 1:length(Current_File_Row_Offset)
-                        Current_File_Row_Offset(Current_File) = max(0, length(find(Weight_Table.File_Index == Current_File)));
-                    end
-                else
-                    %disp("Warning: Determination of position for the final data from chunk undetermined.");
-                end
-            end
+    %% Combine the different partitions / raw file data
+    for Current_File = 1:length(Chunk_Files)
+        %Re-create table (will re-initialise as NaN valued)
+        Weight_Table = Create_Event_Table(Header, Chunk_Events(Current_File));
+        %% Load data into table
+        if(Header.Opt_Polarisation)
+            Weight_Table.Px(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Px(:, 1);
+            Weight_Table.Py(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Py(:, 1);
+            Weight_Table.Pz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Pz(:, 1);
         end
-        %% Write final contents of table (if any data remains - due to the nature of the read and sorting process)
-        %Remove weight events with exactly 0 weighting
-        if(Header.Remove_Zero_Weights)
-            [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
-            Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
+        Weight_Table.X(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.X(:, 1);
+        Weight_Table.Y(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Y(:, 1);
+        Weight_Table.Z(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Z(:, 1);
+        Weight_Table.Dx(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dx(:, 1);
+        Weight_Table.Dy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dy(:, 1);
+        Weight_Table.Dz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dz(:, 1);
+        Weight_Table.Energy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Energy(:, 1);
+        Weight_Table.Time(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Time(:, 1);
+        Weight_Table.EKinDir_1(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_1(:, 1);
+        Weight_Table.EKinDir_2(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_2(:, 1);
+        Weight_Table.EKinDir_3(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_3(:, 1);
+        if(~Header.Opt_UniversalWeight)
+            Weight_Table.Weight(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Weight(:, 1);
         end
-        if(Header.Sort_Events_By_Weight)
-            [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+        if(Header.Opt_UniversalPDGCode == 0)
+            Weight_Table.PDGCode(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.PDGCode(:, 1);
         end
-        %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory
-        NaN_Elements = find(isnan(Weight_Table.X) | isnan(Weight_Table.Y) | isnan(Weight_Table.Z));
+        if(Header.Opt_Userflag)
+            Weight_Table.UserFlag(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.UserFlag(:, 1);
+        end
+        %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory (only within the valid range of data)
+        NaN_Elements = find(isnan(Weight_Table.X(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Y(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Z(1:Chunk_Events(Current_File))));
         Weight_Table(NaN_Elements,:) = [];
-        %Write to file
-        File_Write_Index_End = File_Write_Index + height(Weight_Table) - 1;
-        %Only write remaining data to the table if data remains from the sorting process
-        if(File_Write_Index_End >= File_Write_Index)
+        %% Write data to file
+        File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1 - length(NaN_Elements);
+        Data_Write_Index_End = Chunk_Events(Current_File) - length(NaN_Elements);
+        %Only write any data if some remains after filtering 0 weighted data
+        if(Data_Write_Index_End > 1)
             if(Header.Opt_Polarisation)
-                Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(:);
-                Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(:);
-                Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(:);
+                Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(1:Data_Write_Index_End);
+                Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(1:Data_Write_Index_End);
+                Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(1:Data_Write_Index_End);
             end
-            Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(:);
-            Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(:);
-            Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(:);
-            Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(:);
-            Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(:);
-            Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(:);
-            Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(:);
-            Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(:);
+            Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(1:Data_Write_Index_End);
+            Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(1:Data_Write_Index_End);
+            Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(1:Data_Write_Index_End);
+            Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(1:Data_Write_Index_End);
+            Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(1:Data_Write_Index_End);
+            Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(1:Data_Write_Index_End);
+            Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(1:Data_Write_Index_End);
+            Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(1:Data_Write_Index_End);
             if(Header.Save_EKinDir)
-                Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(:);
-                Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(:);
-                Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(:);
+                Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(1:Data_Write_Index_End);
+                Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(1:Data_Write_Index_End);
+                Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(1:Data_Write_Index_End);
             end
             if(~Header.Opt_UniversalWeight)
-                Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(:);
+                Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(1:Data_Write_Index_End);
             end
             if(Header.Opt_UniversalPDGCode == 0)
-                Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(:);
+                Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(1:Data_Write_Index_End);
             end
             if(Header.Opt_Userflag)
-                Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(:);
+                Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(1:Data_Write_Index_End);
             end
-        end
-    else
-        %% Dump files directly to disk in the order of the original MCPL file
-        for Current_File = 1:length(Chunk_Files)
-            %Re-create table (will re-initialise as NaN valued)
-            Weight_Table = Create_Event_Table(Header, Chunk_Events(Current_File));
-            %% Load data into table
-            if(Header.Opt_Polarisation)
-                Weight_Table.Px(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Px(:, 1);
-                Weight_Table.Py(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Py(:, 1);
-                Weight_Table.Pz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Pz(:, 1);
-            end
-            Weight_Table.X(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.X(:, 1);
-            Weight_Table.Y(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Y(:, 1);
-            Weight_Table.Z(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Z(:, 1);
-            Weight_Table.Dx(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dx(:, 1);
-            Weight_Table.Dy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dy(:, 1);
-            Weight_Table.Dz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dz(:, 1);
-            Weight_Table.Energy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Energy(:, 1);
-            Weight_Table.Time(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Time(:, 1);
-            Weight_Table.EKinDir_1(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_1(:, 1);
-            Weight_Table.EKinDir_2(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_2(:, 1);
-            Weight_Table.EKinDir_3(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_3(:, 1);
-            if(~Header.Opt_UniversalWeight)
-                Weight_Table.Weight(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Weight(:, 1);
-            end
-            if(Header.Opt_UniversalPDGCode == 0)
-                Weight_Table.PDGCode(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.PDGCode(:, 1);
-            end
-            if(Header.Opt_Userflag)
-                Weight_Table.UserFlag(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.UserFlag(:, 1);
-            end
-            %Remove weight events with exactly 0 weighting
-            if(Header.Remove_Zero_Weights)
-                [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
-                Removed_Zero_Count = Removed_Zero_Count + Table_Zero_Count;
-            end
-            %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory (only within the valid range of data)
-            NaN_Elements = find(isnan(Weight_Table.X(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Y(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Z(1:Chunk_Events(Current_File))));
-            Weight_Table(NaN_Elements,:) = [];
-            %% Write data to file
-            File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1 - length(NaN_Elements);
-            Data_Write_Index_End = Chunk_Events(Current_File) - length(NaN_Elements);
-            %Only write any data if some remains after filtering 0 weighted data
-            if(Data_Write_Index_End > 1)
-                if(Header.Opt_Polarisation)
-                    Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(1:Data_Write_Index_End);
-                    Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(1:Data_Write_Index_End);
-                    Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(1:Data_Write_Index_End);
-                end
-                Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(1:Data_Write_Index_End);
-                Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(1:Data_Write_Index_End);
-                Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(1:Data_Write_Index_End);
-                Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(1:Data_Write_Index_End);
-                Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(1:Data_Write_Index_End);
-                Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(1:Data_Write_Index_End);
-                Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(1:Data_Write_Index_End);
-                Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(1:Data_Write_Index_End);
-                if(Header.Save_EKinDir)
-                    Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(1:Data_Write_Index_End);
-                    Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(1:Data_Write_Index_End);
-                    Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(1:Data_Write_Index_End);
-                end
-                if(~Header.Opt_UniversalWeight)
-                    Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(1:Data_Write_Index_End);
-                end
-                if(Header.Opt_UniversalPDGCode == 0)
-                    Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(1:Data_Write_Index_End);
-                end
-                if(Header.Opt_Userflag)
-                    Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(1:Data_Write_Index_End);
-                end
-                %Increment for next write pass
-                File_Write_Index = File_Write_Index_End + 1;
-            end
+            %Increment for next write pass
+            File_Write_Index = File_Write_Index_End + 1;
         end
     end
     
