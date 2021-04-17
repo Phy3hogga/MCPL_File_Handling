@@ -82,7 +82,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     if(isfile(MCPL_File_Path))
         [Directory_Path, Filename, Extension] = fileparts(MCPL_File_Path);
         %% Switch treatment of file format based on file format
-        if(strcmpi(Extension, '.gz'))
+        if(any(strcmpi(Extension, {'.gz', '.rar', '.zip'})))
             %Extraction of GZ archive (if the file format matches)
             Uncompressed_File_Path = strcat(Directory_Path, filesep, Filename, '-UNCOMPRESSED');
             %Only use RAR_Parameters field if it has been parsed by previous settings structure
