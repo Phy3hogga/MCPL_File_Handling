@@ -1369,7 +1369,7 @@ end
 function File_Chunks = Order_Partition(Datastore_Directory_Path)
     %% Validate and Order the datastore partition files
     %Find partition files in the Datastore directory
-    Files = flip(Search_Files(Datastore_Directory_Path, '.mat'));
+    Files = Search_Files(Datastore_Directory_Path, '.mat');
     %Track number of partitions, partition index and variable length for each file
     Number_Of_Partitions = zeros(size(Files));
     Partition_Index = zeros(size(Files));
