@@ -159,7 +159,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     
     %Preallocate the list of file paths
     MAT_File_Path{length(MCPL_File_List)} = '';
-    %% Read files
+    %% Read MCPL or XBD files into temporary MAT files
     for Read_Index = 1:length(MCPL_File_List)
         %Path and reference to file
         File_Path = fullfile(MCPL_File_List(Read_Index).folder, filesep, MCPL_File_List(Read_Index).name);
