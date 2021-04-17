@@ -60,12 +60,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(strcmpi(User_Input, 'Y'))
                 Directory_Create_Success = Attempt_Directory_Creation(Struct_Var_Value);
                 if(~Directory_Create_Success)
-                    error("MCPL_To_MAT : Failed to create temporary directory");
+                    error("MCPL_To_MAT : Failed to create temporary directory.");
                 end
             else
                 error("MCPL_To_MAT : Ending Execution.");
             end
         end
+        %Set matlab to use the temporary directory specified rather than the default system temp directory
         setenv('TEMP', Struct_Var_Value);
         setenv('TMP', Struct_Var_Value);
     end
@@ -92,14 +93,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 RAR_Parameters = struct();
             end
             if(~Skip_Uncompress)
-                disp("MCPL_To_Mat : Attempting to uncompress .GZ archive");
+                disp("MCPL_To_Mat : Attempting to uncompress .GZ archive.");
                 Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
             else
                 Successful_Uncompress = 1;
             end
             clear Skip_Uncompress RAR_Parameters;
             if(~Successful_Uncompress)
-                error('MCPL_To_Mat : Error uncompressing GZ file format');
+                error('MCPL_To_Mat : Error uncompressing GZ file format.');
             end
             MCPL_File_List = {};
             File_Path_Search = Uncompressed_File_Path;
@@ -121,7 +122,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         File_Path_Search = MCPL_File_Path;
         MCPL_File_List = {};
     else
-        error('MCPL_To_Mat : Input File or Directory does not exist');
+        error('MCPL_To_Mat : Input File or Directory does not exist.');
     end
     clear Extension Filename Directory_Path MCPL_File_Path;
 
@@ -133,7 +134,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         %Check directory lists aren't empty
         if(isequal(MCPL_File_Search, struct()))
             if(isequal(XBD_File_Search, struct()))
-                error('MCPL_To_Mat : No compatible files found within the directory specified');
+                error('MCPL_To_Mat : No MCPL or XBD files found.');
                 MCPL_File_List = [];
             else
                 MCPL_File_List = XBD_File_Search;
