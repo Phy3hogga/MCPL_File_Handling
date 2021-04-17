@@ -886,7 +886,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                 end
                 %Reset write position in Weight_Table to the first row (circular buffer)
                 Weight_Table_Position = 1;
-
+                
                 %Remove weight events with exactly 0 weighting
                 if(Header.Remove_Zero_Weights)
                     [Weight_Table, Table_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header);
@@ -894,7 +894,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                 end
                 %Sort by weight followed by other elements a sub sort of file row (if two weights are identical but are out of order) in the file
                 [Weight_Table, ~] = sortrows(Weight_Table, {'Weight', 'Energy', 'X', 'Y', 'Z', 'File_Row'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
-               
+                
                 %Re-check files that still need reading
                 Read_Values = find(Read_Event == true);
                 %Find the indicies of NaN elements
@@ -925,19 +925,19 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                     else
                         Write_Final_Index = Last_Entry_For_File;
                     end
-
+                    
                     %Remove any NaN elements (located in top half of table after sorting) from writing to file
                     if(any(NaN_Elements))
                         Write_Initial_Index = NaN_Elements(end) + 1;
                     else
                         Write_Initial_Index = 1;
                     end
-
+                    
                     %Sense-check linear indicies (it is possible for all elements to have been written last iteration due to the delay in the read / iteration cycle)
                     if(Write_Initial_Index <= Write_Final_Index)
                         %Write to file
                         File_Write_Index_End = File_Write_Index + length(Weight_Table.File_Index(Write_Initial_Index:Write_Final_Index)) - 1;
-
+                        
                         if(Header.Opt_Polarisation)
                             Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(Write_Initial_Index:Write_Final_Index);
                             Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(Write_Initial_Index:Write_Final_Index);
@@ -965,10 +965,10 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
                         if(Header.Opt_Userflag)
                             Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(Write_Initial_Index:Write_Final_Index);
                         end
-
+                        
                         %Increment for next pass
                         File_Write_Index = File_Write_Index_End + 1;
-
+                        
                         %Reset position for inserting next read chunks (stops duplication of data when reaching the end of files if not all overwritten)
                         Weight_Table.File_Index(1:Write_Final_Index) = NaN;
                         Weight_Table.File_Row(1:Write_Final_Index) = NaN;
@@ -1130,7 +1130,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
             end
         end
     end
-
+    
     %% Remove additional entries from the preallocation in the combined MAT file (if any exist)
     %Increment so no data is overwritten on the last entry
     File_Write_Index_End = File_Write_Index_End + 1;
@@ -1165,6 +1165,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     %Decrement to find the final event again
     File_Write_Index_End = File_Write_Index_End - 1;
+    
     %Display output file progress
     disp(strcat("MCPL_To_MAT : Input Events             : ", num2str(Header.Particles)));
     disp(strcat("MCPL_To_MAT : Retained Events          : ", num2str(File_Write_Index_End)));
