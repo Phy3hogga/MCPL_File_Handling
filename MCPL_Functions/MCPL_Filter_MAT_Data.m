@@ -1,5 +1,5 @@
 %% Filters a matfile containing MCPL data based on filter parameters specifed in Filters
-function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_Mat_File_Path, Filters)
+function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_Mat_File_Path, Filters)
     %% Input handling
     if(nargin ~= 3)
         error("Filter_MCPL_MAT_Data: Expected 3 inputs.");
