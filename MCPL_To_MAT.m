@@ -627,7 +627,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         File_Data = fread(File_ID, Header.Opt_ParticleSize * File_Chunk.Events, 'uint8=>uint8');
         File_Data = reshape(File_Data, Header.Opt_ParticleSize, size(File_Data, 1) / Header.Opt_ParticleSize);
     elseif(Header.File_Type == 2)
-        File_Data = fread(File_ID, (Header.Header.Opt_ParticleSize / Header.Byte_Size) * File_Chunk.Events, 'double');
+        File_Data = fread(File_ID, (Header.Opt_ParticleSize / Header.Byte_Size) * File_Chunk.Events, 'double');
         File_Data = reshape(File_Data, Header.Byte_Size, size(File_Data, 1) / Header.Byte_Size);
     else
         error(strcat("MCPL_To_MAT : Unknown file format for reading Chunk: ", num2str(File_Chunk.Chunk)));
