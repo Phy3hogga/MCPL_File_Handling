@@ -771,11 +771,9 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %Find limits of array sizes for each chunk
     Chunk_Events = [File_Chunks(:).Events];
     Total_Chunk_Events = sum(Chunk_Events(:));
-    Max_Chunk_Events = max(Chunk_Events);
 
     %Index of current row within the file to write to
     File_Write_Index = 1;
-    Removed_Zero_Count = 0;
     %File path to write the merged data to
     [Root_File_Path, Filename, ~] = fileparts(File_Path);
     Merged_File_Path = fullfile(Root_File_Path, strcat(Filename, ".mat"));
@@ -923,7 +921,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     %Decrement to find the final event again
     File_Write_Index_End = File_Write_Index_End - 1;
     
-    %Display output file progress
+    %% Display output file progress
     disp(strcat("MCPL_To_MAT : Input Events             : ", num2str(Header.Particles)));
     disp(strcat("MCPL_To_MAT : Retained Events          : ", num2str(File_Write_Index_End)));
     disp(strcat("MCPL_To_MAT : Removed 0 Weight Events  : ", num2str(Removed_Zero_Count)));
@@ -931,11 +929,13 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     if((Header.Particles - File_Write_Index_End) ~= Removed_Zero_Count)
         disp("MCPL_To_MAT : Warning: Total number of events read and removed zero weight events mismatch.");
     end
+    
+    %% Edit header information with removed events
     %Edit the number of events in the stored file
     Header.Particles = File_Write_Index_End;
-    
-    %Remove File_Chunks from the header data
+    %Remove File_Chunks from the header data (No longer needed now data is combined)
     Header.File_Chunks = [];
+    
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
     Merged_File_Reference.Header = Header;
     
