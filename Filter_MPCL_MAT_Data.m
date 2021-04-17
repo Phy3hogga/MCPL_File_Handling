@@ -112,7 +112,7 @@ function Filtered_Mat_File_Path = Filter_MPCL_MAT_Data(Mat_File_Path, Filtered_M
         for Current_Field = 1:length(Mat_File_Variables)
             [Size_1(Current_Field), Size_2(Current_Field)] = size(Mat_File_Reference, Mat_File_Variables{Current_Field});
         end
-        if (~(std(Size_1(:)) == 0 && std(Size_2(:)) == 0))
+        if (~(range(Size_1(:)) == 0 && range(Size_2(:)) == 0))
             error("Filter_MCPL_MAT_Data: Mismatch in variable sizes.");
         end
         % Verify the length of the fields matches the number of events in the header
