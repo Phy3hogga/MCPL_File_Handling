@@ -1012,47 +1012,6 @@ function Table = Create_Event_Table(Header, Number_Of_Events)
     end
 end
 
-%% Removes all zero weighted data from an event table
-function [Weight_Table, Removed_Zero_Count] = Remove_Zero_Weights(Weight_Table, Header)
-    %Find 0-weighted events
-    Remove_Zero_Indicies = find(Floating_Point_Equal(Weight_Table.Weight, 0.0));
-    %Only attempt to remove relevent lines from the table in the event that 0-weighted events are found
-    if(~isempty(Remove_Zero_Indicies))
-        Removed_Zero_Count = length(Remove_Zero_Indicies);
-        if(Header.Opt_Polarisation)
-            Weight_Table.Px(Remove_Zero_Indicies) = NaN;
-            Weight_Table.Py(Remove_Zero_Indicies) = NaN;
-            Weight_Table.Pz(Remove_Zero_Indicies) = NaN;
-        end
-        Weight_Table.X(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Y(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Z(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Dx(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Dy(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Dz(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Energy(Remove_Zero_Indicies) = NaN;
-        Weight_Table.Time(Remove_Zero_Indicies) = NaN;
-        Weight_Table.EKinDir_1(Remove_Zero_Indicies) = NaN;
-        Weight_Table.EKinDir_2(Remove_Zero_Indicies) = NaN;
-        Weight_Table.EKinDir_3(Remove_Zero_Indicies) = NaN;
-        if(~Header.Opt_UniversalWeight)
-            Weight_Table.Weight(Remove_Zero_Indicies) = NaN;
-        end
-        if(Header.Opt_UniversalPDGCode == 0)
-            Weight_Table.PDGCode(Remove_Zero_Indicies) = NaN;
-        end
-        if(Header.Opt_Userflag)
-            Weight_Table.UserFlag(Remove_Zero_Indicies) = NaN;
-        end
-    else
-        %Safe exit for the number of 0-weight events found
-        Removed_Zero_Count = 0;
-    end
-end
-
-
-
-
 %% REFERENCE FOR READING GZIP FROM FILESTREAM; UNUSED BUT POTENITAL UPGRADE IN FUTURE
 %% https://www.cs.usfca.edu/~parrt/doc/java/JavaIO-notes.pdf
 % File_Str = javaObject('java.io.FileInputStream',File_Path);
