@@ -6,6 +6,8 @@ function File_Chunks = Order_Datastore_Partitions(Datastore_Directory_Path)
     %Track number of partitions, partition index and variable length for each file
     Number_Of_Partitions = zeros(size(Files));
     Partition_Index = zeros(size(Files));
+    Partition_Sub_Index = zeros(size(Files));
+%% TODO : Add logic for BlockIndexInPartition
     Data_Length = zeros(size(Files));
     %Open references to all mat files
     Matfile_Partition_References = cellfun(@matfile, fullfile({Files.folder}, {Files.name}), 'UniformOutput', false);
@@ -28,6 +30,11 @@ function File_Chunks = Order_Datastore_Partitions(Datastore_Directory_Path)
             error("MCPL_To_MAT : Datastore_Partition_Information missing PartitionIndex from Datastore Partition Information");
         end
         Partition_Index(Current_Reference) = Datastore_Partition_Information.PartitionIndex;
+        %Get sub-position within the partition.
+        if(~isfield(Datastore_Partition_Information, 'BlockIndexInPartition'))
+            error("MCPL_To_MAT : Datastore_Partition_Information missing BlockIndexInPartition from Datastore Partition Information");
+        end
+        Partition_Sub_Index(Current_Reference) = Datastore_Partition_Information.BlockIndexInPartition;
         %Get length of data in all fields
         Size_1 = zeros(length(Mat_File_Variables),1);
         Size_2 = zeros(length(Mat_File_Variables),1);
@@ -57,10 +64,24 @@ function File_Chunks = Order_Datastore_Partitions(Datastore_Directory_Path)
     if(range(Number_Of_Partitions) ~= 0)
         error("MCPL_To_MAT : Mismatch between Datastore_Partition_Information partitions and the number of partition files.");
     end
+    %Create table to sort and get unique rows
+    Partition_Table = array2table([Partition_Index; Partition_Sub_Index]', 'VariableNames', {'Partition_Index','Partition_Sub_Index'});
+    Unique_Partition_Table = unique(Partition_Table);
+    if(height(Partition_Table) ~= height(Unique_Partition_Table))
+        error("MCPL_To_MAT : Non-unique parition data between seperate paritions.");
+    end
+    [Sorted_Partition_Table, Sorted_Index] = sortrows(Unique_Partition_Table, {'Partition_Index', 'Partition_Sub_Index'}, {'ascend', 'ascend'});
     %Check partitions are sequential
-    [Partition_Index, Sorted_Index] = sort(Partition_Index, 'ascend');
-    if(sum(diff(Partition_Index)==1) ~= numel(Partition_Index) - 1)
+    Unique_Partitions = unique(Sorted_Partition_Table.Partition_Index);
+    if(~Check_Sequential_Numeric_Array(Unique_Partitions))
         error("MCPL_To_MAT : Sorted Partitions aren't sequential, missing partition files.");
+    end
+    %Check all sub partitions are sequential
+    for Current_Partition_Index = 1:length(Unique_Partitions)
+        Sub_Partitions = Unique_Partition_Table(Unique_Partition_Table.Partition_Index == Unique_Partitions(Current_Partition_Index),:).Partition_Sub_Index;
+        if(~Check_Sequential_Numeric_Array(Sub_Partitions))
+            error(strcat("MCPL_To_MAT : Sorted Sub Partitions aren't sequential for partition ", num2str(Unique_Partitions(Current_Partition_Index)), ", missing partition files."));
+        end
     end
     %Sort Files into order
     Files = Files(Sorted_Index);
