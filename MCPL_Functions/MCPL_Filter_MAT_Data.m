@@ -327,7 +327,7 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                 try
                     %Each variable individually
                     for Current_Variable = 1:length(Mat_File_Variables)
-                        disp(strcat("Filter MCPL MAT Data : Writing Data for ", Mat_File_Variables{Current_Variable}));
+                        disp(strcat("Filter_MCPL_MAT_Data : Writing Data for ", Mat_File_Variables{Current_Variable}));
                         %Write valid data only
                         Write_Index_Start = 1;
                         %Each chunk of the file
@@ -348,7 +348,7 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                         end
                     end
                 catch
-                    warning("Filter MCPL MAT Data : Error handling filtering process in memory, defaulting to slower direct disk write method");
+                    warning("Filter_MCPL_MAT_Data : Error handling filtering process in memory, defaulting to slower direct disk write method");
                     Build_In_Memory = false;
                 end
             end

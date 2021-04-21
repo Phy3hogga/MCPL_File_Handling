@@ -243,7 +243,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(File.Type == 1)
                 %Dynamic data types
                 if(Header.Opt_Polarisation)
-                    Event_Byte_Count = Event_Byte_Count + (3 * Byte_Size);
                     %Polarisation data within the photon byte string
                     [Event_Byte_Count, Byte_Split.Px.Start, Byte_Split.Px.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                     [Event_Byte_Count, Byte_Split.Py.Start, Byte_Split.Py.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
