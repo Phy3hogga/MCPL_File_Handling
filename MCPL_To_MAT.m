@@ -239,134 +239,60 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Header.Byte_Size = Byte_Size;
             Header.Byte_Type = Byte_Type;
             %Tracking the byte position of specific data within a single photon's data
-            Byte_Position = 0;
-            %Tracking how many bytes to read for a specific photon in total
-            Photon_Byte_Count = 0;
+            Event_Byte_Count = 0;
             if(File.Type == 1)
+                %Dynamic data types
                 if(Header.Opt_Polarisation)
-                    Photon_Byte_Count = Photon_Byte_Count + (3 * Byte_Size);
+                    Event_Byte_Count = Event_Byte_Count + (3 * Byte_Size);
                     %Polarisation data within the photon byte string
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.Px.Start = Byte_Position;
-                    Byte_Position = Byte_Position + Byte_Size - 1;
-                    Byte_Split.Px.End = Byte_Position;
-
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.Py.Start = Byte_Position;
-                    Byte_Position = Byte_Position + Byte_Size - 1;
-                    Byte_Split.Py.End = Byte_Position;
-
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.Pz.Start = Byte_Position;
-                    Byte_Position = Byte_Position + Byte_Size - 1;
-                    Byte_Split.Pz.End = Byte_Position;
+                    [Event_Byte_Count, Byte_Split.Px.Start, Byte_Split.Px.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                    [Event_Byte_Count, Byte_Split.Py.Start, Byte_Split.Py.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                    [Event_Byte_Count, Byte_Split.Pz.Start, Byte_Split.Pz.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                 end
-                %Addition of extra field; ekindir decompression
-                Photon_Byte_Count = Photon_Byte_Count + (7 * Byte_Size);
                 %Position data within the photon byte string
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.X.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.X.End = Byte_Position;
-
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Y.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Y.End = Byte_Position;
-
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Z.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Z.End = Byte_Position;
-
+                [Event_Byte_Count, Byte_Split.X.Start, Byte_Split.X.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Y.Start, Byte_Split.Y.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Z.Start, Byte_Split.Z.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                 %Displacement/Energy Vectors within the photon byte string
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.EKinDir_1.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.EKinDir_1.End = Byte_Position;
-
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.EKinDir_2.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.EKinDir_2.End = Byte_Position;
-
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.EKinDir_3.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.EKinDir_3.End = Byte_Position;
-
+                [Event_Byte_Count, Byte_Split.EKinDir_1.Start, Byte_Split.EKinDir_1.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.EKinDir_2.Start, Byte_Split.EKinDir_2.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.EKinDir_3.Start, Byte_Split.EKinDir_3.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                 %Time within the photon byte string
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Time.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Time.End = Byte_Position;
-
+                [Event_Byte_Count, Byte_Split.Time.Start, Byte_Split.Time.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                %Weight within the photon byte string (if exists)
                 if(~Header.Opt_UniversalWeight)
-                    Photon_Byte_Count = Photon_Byte_Count + Byte_Size;
-                    %Weight within the photon byte string
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.Weight.Start = Byte_Position;
-                    Byte_Position = Byte_Position + Byte_Size - 1;
-                    Byte_Split.Weight.End = Byte_Position;
+                    [Event_Byte_Count, Byte_Split.Weight.Start, Byte_Split.Weight.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                 end
-                %Fixed size data
-                %If PDGCode varies
+                
+                %Static Data Types
+                %PDGCode (if exists)
                 if(Header.Opt_UniversalPDGCode == 0)
-                    Photon_Byte_Count = Photon_Byte_Count + 4;
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.PDGCode.Start = Byte_Position;
-                    Byte_Position = Byte_Position + 4 - 1;
-                    Byte_Split.PDGCode.End = Byte_Position;
+                    [Event_Byte_Count, Byte_Split.PDGCode.Start, Byte_Split.PDGCode.End] = Get_Byte_Position(Event_Byte_Count, 4);
                 end
-                %If userflags are present
+                %Userlags (if exists)
                 if(Header.Opt_Userflag)
-                    Photon_Byte_Count = Photon_Byte_Count + 4;
-                    Byte_Position = Byte_Position + 1;
-                    Byte_Split.UserFlag.Start = Byte_Position;
-                    Byte_Position = Byte_Position + 4 - 1;
-                    Byte_Split.UserFlag.End = Byte_Position;
+                    [Event_Byte_Count, Byte_Split.UserFlag.Start, Byte_Split.UserFlag.End] = Get_Byte_Position(Event_Byte_Count, 4);
                 end
             elseif(File.Type == 2)
-                Photon_Byte_Count = Photon_Byte_Count + (8 * Byte_Size);
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.X.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.X.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Y.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Y.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Z.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Z.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Dx.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Dx.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Dy.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Dy.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Dz.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Dz.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Weight.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Weight.End = Byte_Position;
-                Byte_Position = Byte_Position + 1;
-                Byte_Split.Energy.Start = Byte_Position;
-                Byte_Position = Byte_Position + Byte_Size - 1;
-                Byte_Split.Energy.End = Byte_Position;
+                %Position data within the photon byte string
+                [Event_Byte_Count, Byte_Split.X.Start, Byte_Split.X.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Y.Start, Byte_Split.Y.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Z.Start, Byte_Split.Z.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                %Direction Vector data within the photon byte string
+                [Event_Byte_Count, Byte_Split.Dx.Start, Byte_Split.Dx.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Dy.Start, Byte_Split.Dy.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                [Event_Byte_Count, Byte_Split.Dz.Start, Byte_Split.Dz.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                %Weight within the photon byte string
+                [Event_Byte_Count, Byte_Split.Weight.Start, Byte_Split.Weight.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
+                %Energy within the photon byte string
+                [Event_Byte_Count, Byte_Split.Energy.Start, Byte_Split.Energy.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
                 %% Calculate number of events within the XBD file
-                Header.Particles = (File.End - Header.End) / Byte_Position;
+                Header.Particles = (File.End - Header.End) / Event_Byte_Count;
             end
             %Add additional fields to header
             Header.File_Type = File.Type;
             if(isfield(Header, 'Opt_ParticleSize'))
-                if(Header.Opt_ParticleSize ~= Photon_Byte_Count)
+                if(Header.Opt_ParticleSize ~= Event_Byte_Count)
                     warning("MCPL To MAT : Particle size listed in file doesn't match split data");
                 end
             else
@@ -589,6 +515,18 @@ function MCPL_String = MCPL_Read_String(File_ID, Endian)
     else
         MCPL_String = '';
     end
+end
+
+%% Calculates the running relative byte positions of different variables within the binary data
+function [Byte_Position, Start_Position, End_Position] = Get_Byte_Position(Byte_Position, Byte_Size)
+    %Move to next byte
+    Byte_Position = Byte_Position + 1;
+    %Output Start position
+    Start_Position = Byte_Position;
+    %Move to the final byte
+    Byte_Position = Byte_Position + Byte_Size - 1;
+    %Output End Position
+    End_Position = Byte_Position;
 end
 
 %% Read and Dump an MCPL File Chunk to MAT file
