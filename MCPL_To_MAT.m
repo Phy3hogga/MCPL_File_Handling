@@ -386,19 +386,16 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             elseif(File.Type == 2)
                 disp("MCPL_To_Mat : Processing XBD file into MAT file");
             end
-            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path);
+            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Files);
+            
+            %% Cleanup temporary files (including all files within)
+            if(Remove_Temp_Files)
+                Temporary_Files_Removed = Attempt_Directory_Deletion(Temp_Output_File_Root);
+            end
             
             %% Close parpool
             if(Parpool_Num_Cores > 1)
                 Parpool_Delete();
-            end
-            
-            %% Cleanup temporary files (including all files within)
-            if(Remove_Temp_Files)
-                Temporary_Files_Removed = rmdir(Temp_Output_File_Root, 's');
-                if(~Temporary_Files_Removed)
-                    warning(strcat("MCPL_To_MAT : Failed to delete temporary directory: ", Temp_Output_File_Root));
-                end
             end
         else
             error(strcat("MCPL_To_MAT : MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
@@ -669,7 +666,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
 end
 
 %% Merge MCPL File Chunks into a single MAT file
-function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
+function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Files)
     %File_Chunk data loading from header
     File_Chunks = Header.File_Chunks;
     
@@ -693,10 +690,10 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         disp("MCPL_To_MAT : Sorting Data by Weight.");
         [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
     end
-    %Ensure the output directory is clear
+    %Ensure the output directory is empty
     if(isfolder(Datastore_Directory_Path))
         disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
-        rmdir(Datastore_Directory_Path, 's');
+        Attempt_Directory_Deletion(Datastore_Directory_Path);
         Attempt_Directory_Creation(Datastore_Directory_Path);
     end
     disp("MCPL_To_MAT : Performing Datastore Operations and Saving to Datastore Partitions.");
@@ -794,6 +791,11 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     
     %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
     Merged_File_Reference.Header = Header;
+    
+    %Delete datastore directory
+    if(Remove_Temp_Files)
+        Attempt_Directory_Deletion(Datastore_Directory_Path);
+    end
     
     %% Datastore write function (local to parent to save on memory duplication)
     function Write_Data(info, data)
