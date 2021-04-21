@@ -743,7 +743,9 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
     %Remove zero weights if enabled
     if(Header.Remove_Zero_Weights)
+        disp("MCPL_To_MAT : Finding 0 Weight entries to remove.");
         Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
+        disp("MCPL_To_MAT : Finding number of removed 0 weight entries.");
         Removed_Zero_Count = gather(sum(Index(:)));
         File_Data_Store(Index,:) = [];
     else
@@ -751,6 +753,7 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     end
     %Sort table if enabled
     if(Header.Sort_Events_By_Weight)
+        disp("MCPL_To_MAT : Sorting Data by Weight.");
         [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
     end
     %Ensure the output directory is clear
@@ -759,16 +762,16 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         rmdir(Datastore_Directory_Path, 's');
         Attempt_Directory_Creation(Datastore_Directory_Path);
     end
+    disp("MCPL_To_MAT : Performing Datastore Operations and Saving to Datastore Partitions.");
     %Write processed datastore data to files
     write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
     %Ensure the datastore partitions are ordered correctly, replace chunk files for re-combination
-    Chunk_Files = Order_Datastore_Partitions(Datastore_Directory_Path);
-    Header.Chunk_Files = Chunk_Files;
-    
+    File_Chunks = Order_Datastore_Partitions(Datastore_Directory_Path);
+
     %% Recombination of the different partitions
-    Chunk_Files = {File_Chunks(:).Temp_File_Path};
+    disp("MCPL_To_MAT : Merging Datastore Partitions.");
     %Load matfile references to each file containing a chunk of processed data
-    Chunk_Matfile_References = cellfun(@matfile, Chunk_Files, 'UniformOutput', false);
+    Chunk_Matfile_References = cellfun(@matfile, {File_Chunks(:).Temp_File_Path}, 'UniformOutput', false);
     %Find limits of array sizes for each chunk
     Chunk_Events = [File_Chunks(:).Events];
     Total_Chunk_Events = sum(Chunk_Events(:));
@@ -818,109 +821,24 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     clear Empty_Byte_Type;
 
     %% Combine the different partitions / raw file data
-    for Current_File = 1:length(Chunk_Files)
-        %Re-create table (will re-initialise as NaN valued)
-        Weight_Table = Create_Event_Table(Header, Chunk_Events(Current_File));
-        %% Load data into table
-        if(Header.Opt_Polarisation)
-            Weight_Table.Px(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Px(:, 1);
-            Weight_Table.Py(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Py(:, 1);
-            Weight_Table.Pz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Pz(:, 1);
+    Remove_Variables = {'Datastore_Partition_Information'};
+    for Current_File = 1:length(Chunk_Matfile_References)
+        %Get variables in file
+        Mat_File_Variables = whos(Chunk_Matfile_References{Current_File});
+        %Remove any unwanted variables
+        Mat_File_Variables(strcmpi({Mat_File_Variables.name}, Remove_Variables)) = [];
+        %Final index to write to
+        File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1;
+        %Copy data for each variable to the combined file
+        for Current_Variable = 1:length(Mat_File_Variables)
+            %Get size of current variable
+            Variable_Size = Mat_File_Variables(Current_Variable).size;
+            %Copy data
+            Merged_File_Reference.(Mat_File_Variables(Current_Variable).name)(File_Write_Index:File_Write_Index_End, 1) = reshape(Chunk_Matfile_References{Current_File}.(Mat_File_Variables(Current_Variable).name)(1:Variable_Size(1), 1:Variable_Size(2)), [], 1);
         end
-        Weight_Table.X(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.X(:, 1);
-        Weight_Table.Y(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Y(:, 1);
-        Weight_Table.Z(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Z(:, 1);
-        Weight_Table.Dx(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dx(:, 1);
-        Weight_Table.Dy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dy(:, 1);
-        Weight_Table.Dz(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Dz(:, 1);
-        Weight_Table.Energy(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Energy(:, 1);
-        Weight_Table.Time(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Time(:, 1);
-        Weight_Table.EKinDir_1(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_1(:, 1);
-        Weight_Table.EKinDir_2(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_2(:, 1);
-        Weight_Table.EKinDir_3(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.EKinDir_3(:, 1);
-        if(~Header.Opt_UniversalWeight)
-            Weight_Table.Weight(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.Weight(:, 1);
-        end
-        if(Header.Opt_UniversalPDGCode == 0)
-            Weight_Table.PDGCode(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.PDGCode(:, 1);
-        end
-        if(Header.Opt_Userflag)
-            Weight_Table.UserFlag(1:Chunk_Events(Current_File)) = Chunk_Matfile_References{Current_File}.UserFlag(:, 1);
-        end
-        %Fully delete the NaN allocated table elements now the table can be destroyed from allocated memory (only within the valid range of data)
-        NaN_Elements = find(isnan(Weight_Table.X(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Y(1:Chunk_Events(Current_File))) | isnan(Weight_Table.Z(1:Chunk_Events(Current_File))));
-        Weight_Table(NaN_Elements,:) = [];
-        %% Write data to file
-        File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1 - length(NaN_Elements);
-        Data_Write_Index_End = Chunk_Events(Current_File) - length(NaN_Elements);
-        %Only write any data if some remains after filtering 0 weighted data
-        if(Data_Write_Index_End > 1)
-            if(Header.Opt_Polarisation)
-                Merged_File_Reference.Px(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Px(1:Data_Write_Index_End);
-                Merged_File_Reference.Py(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Py(1:Data_Write_Index_End);
-                Merged_File_Reference.Pz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Pz(1:Data_Write_Index_End);
-            end
-            Merged_File_Reference.X(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.X(1:Data_Write_Index_End);
-            Merged_File_Reference.Y(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Y(1:Data_Write_Index_End);
-            Merged_File_Reference.Z(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Z(1:Data_Write_Index_End);
-            Merged_File_Reference.Dx(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dx(1:Data_Write_Index_End);
-            Merged_File_Reference.Dy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dy(1:Data_Write_Index_End);
-            Merged_File_Reference.Dz(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Dz(1:Data_Write_Index_End);
-            Merged_File_Reference.Energy(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Energy(1:Data_Write_Index_End);
-            Merged_File_Reference.Time(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Time(1:Data_Write_Index_End);
-            if(Header.Save_EKinDir)
-                Merged_File_Reference.EKinDir_1(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_1(1:Data_Write_Index_End);
-                Merged_File_Reference.EKinDir_2(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_2(1:Data_Write_Index_End);
-                Merged_File_Reference.EKinDir_3(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.EKinDir_3(1:Data_Write_Index_End);
-            end
-            if(~Header.Opt_UniversalWeight)
-                Merged_File_Reference.Weight(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.Weight(1:Data_Write_Index_End);
-            end
-            if(Header.Opt_UniversalPDGCode == 0)
-                Merged_File_Reference.PDGCode(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.PDGCode(1:Data_Write_Index_End);
-            end
-            if(Header.Opt_Userflag)
-                Merged_File_Reference.UserFlag(File_Write_Index:File_Write_Index_End, 1) = Weight_Table.UserFlag(1:Data_Write_Index_End);
-            end
-            %Increment for next write pass
-            File_Write_Index = File_Write_Index_End + 1;
-        end
+        %Increment for next write pass
+        File_Write_Index = File_Write_Index_End + 1;
     end
-    
-    %% Remove additional entries from the preallocation in the combined MAT file (if any exist)
-    %Increment so no data is overwritten on the last entry
-    File_Write_Index_End = File_Write_Index_End + 1;
-    if(Header.Particles > File_Write_Index_End)
-        if(Header.Opt_Polarisation)
-            Merged_File_Reference.Px(File_Write_Index_End:Header.Particles, 1) = [];
-            Merged_File_Reference.Py(File_Write_Index_End:Header.Particles, 1) = [];
-            Merged_File_Reference.Pz(File_Write_Index_End:Header.Particles, 1) = [];
-        end
-        Merged_File_Reference.X(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Y(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Z(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Dx(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Dy(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Dz(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Energy(File_Write_Index_End:Header.Particles) = [];
-        Merged_File_Reference.Time(File_Write_Index_End:Header.Particles) = [];
-        if(Header.Save_EKinDir)
-            Merged_File_Reference.EKinDir_1(File_Write_Index_End:Header.Particles) = [];
-            Merged_File_Reference.EKinDir_2(File_Write_Index_End:Header.Particles) = [];
-            Merged_File_Reference.EKinDir_3(File_Write_Index_End:Header.Particles) = [];
-        end
-        if(~Header.Opt_UniversalWeight)
-            Merged_File_Reference.Weight(File_Write_Index_End:Header.Particles) = [];
-        end
-        if(Header.Opt_UniversalPDGCode == 0)
-            Merged_File_Reference.PDGCode(File_Write_Index_End:Header.Particles) = [];
-        end
-        if(Header.Opt_Userflag)
-            Merged_File_Reference.UserFlag(File_Write_Index_End:Header.Particles) = [];
-        end
-    end
-    %Decrement to find the final event again
-    File_Write_Index_End = File_Write_Index_End - 1;
     
     %% Display output file progress
     disp(strcat("MCPL_To_MAT : Input Events             : ", num2str(Header.Particles)));
@@ -949,67 +867,6 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
         data.Datastore_Partition_Information = info;
         %Write data to file
         save(info.SuggestedFilename, '-v7.3', '-struct', 'data');
-    end
-end
-
-%% Creates and allocates memory for an event table (initiates with NaN variables)
-function Table = Create_Event_Table(Header, Number_Of_Events)
-%Create table for sorting weights
-    Table_Fields = {'File_Index', 'File_Row'};
-    Table_Datatypes = {'int64', 'int64'};
-    if(Header.Opt_Polarisation)
-        Table_Fields = [Table_Fields, 'Px', 'Py', 'Pz'];
-        Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    end
-    Table_Fields = [Table_Fields, 'X', 'Y', 'Z'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'Dx', 'Dy', 'Dz'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'Energy', 'Time'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type];
-    Table_Fields = [Table_Fields, 'EKinDir_1', 'EKinDir_2', 'EKinDir_3'];
-    Table_Datatypes = [Table_Datatypes, Header.Byte_Type, Header.Byte_Type, Header.Byte_Type];
-    if(~Header.Opt_UniversalWeight)
-        Table_Fields{end + 1} = 'Weight';
-        Table_Datatypes{end + 1} = Header.Byte_Type;
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Table_Fields{end + 1} = 'PDGCode';
-        Table_Datatypes{end + 1} = 'int32';
-    end
-    if(Header.Opt_Userflag)
-        Table_Fields{end + 1} = 'UserFlag';
-        Table_Datatypes{end + 1} = 'uint32';
-    end
-    Table = table('Size', [Number_Of_Events, length(Table_Fields)], 'VariableTypes', Table_Datatypes);
-    Table.Properties.VariableNames = Table_Fields;
-    %Pre-fill table with NaN values
-    Table.File_Index(:) = NaN;
-    Table.File_Row(:) = NaN;
-    if(Header.Opt_Polarisation)
-        Table.Px(:) = NaN;
-        Table.Py(:) = NaN;
-        Table.Pz(:) = NaN;
-    end
-    Table.X(:) = NaN;
-    Table.Y(:) = NaN;
-    Table.Z(:) = NaN;
-    Table.Dx(:) = NaN;
-    Table.Dy(:) = NaN;
-    Table.Dz(:) = NaN;
-    Table.Energy(:) = NaN;
-    Table.Time(:) = NaN;
-    Table.EKinDir_1(:) = NaN;
-    Table.EKinDir_2(:) = NaN;
-    Table.EKinDir_3(:) = NaN;
-    if(~Header.Opt_UniversalWeight)
-        Table.Weight(:) = NaN;
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Table.PDGCode(:) = NaN;
-    end
-    if(Header.Opt_Userflag)
-        Table.UserFlag(:) = NaN;
     end
 end
 
