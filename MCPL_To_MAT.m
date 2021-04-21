@@ -776,8 +776,6 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
     Chunk_Events = [File_Chunks(:).Events];
     Total_Chunk_Events = sum(Chunk_Events(:));
 
-    %Index of current row within the file to write to
-    File_Write_Index = 1;
     %File path to write the merged data to
     [Root_File_Path, Filename, ~] = fileparts(File_Path);
     Merged_File_Path = fullfile(Root_File_Path, strcat(Filename, ".mat"));
@@ -822,6 +820,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path)
 
     %% Combine the different partitions / raw file data
     Remove_Variables = {'Datastore_Partition_Information'};
+    %Index of current row within the file to write to
+    File_Write_Index = 1;
     for Current_File = 1:length(Chunk_Matfile_References)
         %Get variables in file
         Mat_File_Variables = whos(Chunk_Matfile_References{Current_File});
