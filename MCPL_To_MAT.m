@@ -705,7 +705,8 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Fil
     %% Recombination of the different partitions
     disp("MCPL_To_MAT : Merging Datastore Partitions.");
     %Load matfile references to each file containing a chunk of processed data
-    Chunk_Matfile_References = cellfun(@matfile, {File_Chunks(:).Temp_File_Path}, 'UniformOutput', false);
+    Chunk_File_Paths = {File_Chunks(:).Temp_File_Path};
+    Chunk_Matfile_References = cellfun(@matfile, Chunk_File_Paths, 'UniformOutput', false);
     %Find limits of array sizes for each chunk
     Chunk_Events = [File_Chunks(:).Events];
     Total_Chunk_Events = sum(Chunk_Events(:));
@@ -767,8 +768,12 @@ function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Fil
         for Current_Variable = 1:length(Mat_File_Variables)
             %Get size of current variable
             Variable_Size = Mat_File_Variables(Current_Variable).size;
-            %Copy data
-            Merged_File_Reference.(Mat_File_Variables(Current_Variable).name)(File_Write_Index:File_Write_Index_End, 1) = reshape(Chunk_Matfile_References{Current_File}.(Mat_File_Variables(Current_Variable).name)(1:Variable_Size(1), 1:Variable_Size(2)), [], 1);
+            if(~isempty(Variable_Size))
+                %Copy data
+                Merged_File_Reference.(Mat_File_Variables(Current_Variable).name)(File_Write_Index:File_Write_Index_End, 1) = reshape(Chunk_Matfile_References{Current_File}.(Mat_File_Variables(Current_Variable).name)(1:Variable_Size(1), 1:Variable_Size(2)), [], 1);
+            else
+                warning(strcat("MCPL_To_MAT : Could not append data for variable : ", Mat_File_Variables(Current_Variable), " from partition ", Chunk_File_Paths(Current_Variable)));
+            end
         end
         %Increment for next write pass
         File_Write_Index = File_Write_Index_End + 1;
