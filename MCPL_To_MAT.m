@@ -38,13 +38,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     else
         Remove_Zero_Weights = true;
     end
-    %Removal of temporary files created by the parallel core reading
-    [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Remove_Temp_Files', true);
-    if(Struct_Var_Valid)
-        Remove_Temp_Files = Struct_Var_Value;
-    else
-        Remove_Temp_Files = true;
-    end
     %Number of cores used for the parallel core reading
     [Struct_Var_Value, Struct_Var_Valid] = Verify_Structure_Input(Read_Parameters, 'Parpool_Num_Cores', 1);
     if(Struct_Var_Valid)
@@ -420,15 +413,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
 
             %% Merge datastore files
-            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Datastore_Directory_Path, Header, File_Path, Remove_Temp_Files);
+            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Datastore_Directory_Path, Header, File_Path, true);
             
             %% Display output file progress
             disp(strcat("MCPL_To_MAT : Input Events    : ", num2str(Header.Particles)));
             disp(strcat("MCPL_To_MAT : Removed Events  : ", num2str(Removed_Zero_Count)));
+            
             %% Cleanup temporary files (including all files within)
-            if(Remove_Temp_Files)
-                Temporary_Files_Removed = Attempt_Directory_Deletion(Temp_Output_File_Root);
-            end
+            Attempt_Directory_Deletion(Temp_Output_File_Root);
             
             %% Close parpool
             if(Parpool_Num_Cores > 1)

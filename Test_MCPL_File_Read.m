@@ -32,10 +32,8 @@ Read_Parameters.Sort_Events_By_Weight = true;
 Read_Parameters.Remove_Zero_Weights = true;
 %If retaining EKinDir data (reccomended setting to true if wanting to later use subsequent data in simulations)
 Read_Parameters.Save_EKinDir = true;
-%If the temporary files created during processing are deleted (true = delete temp files)
-Read_Parameters.Remove_Temp_Files = false;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
-Read_Parameters.Skip_Uncompress = true;
+Read_Parameters.Skip_Uncompress = false;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
 Read_Parameters.Parpool_Num_Cores = 4;
 %Temporary directory to use for constructing / operating on datastore

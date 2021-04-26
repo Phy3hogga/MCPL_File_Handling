@@ -87,10 +87,10 @@ function Merged_File_Path = MCPL_Merge_Chunks(Datastore_Directory_Path, Header, 
     %Remove File_Chunks from the header data (No longer needed now data is combined)
     Header.File_Chunks = [];
     
-    %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
+    %% Copy header into the data file last (ensures writing is finished; if missing, file is invalid)
     Merged_File_Reference.Header = Header;
     
-    %Delete datastore directory
+    %% Delete datastore directory (including contents)
     if(Remove_Temp_Files)
         Attempt_Directory_Deletion(Datastore_Directory_Path);
     end
