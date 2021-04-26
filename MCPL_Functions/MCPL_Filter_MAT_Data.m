@@ -216,10 +216,10 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                         end
                     end
                 end
-                %% Filter Data using current filter
+                %% Filter Data using current filter (data that directly exists in the table)
                 %Verify corresponding field exists directly in data
                 if(any(strcmpi(Active_Filters(Current_Active_Filter), File_Variable_Names)))
-                    %Mininum filter
+                    %Minimum filter
                     if(Filters.(Active_Filters{Current_Active_Filter}).Min_Active)
                         Remove_Index = File_Data_Store.(Active_Filters{Current_Active_Filter}) < Filters.(Active_Filters{Current_Active_Filter}).Min;
                         File_Data_Store(Remove_Index,:) = [];
@@ -231,16 +231,33 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                         File_Data_Store(Remove_Index,:) = [];
                         disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Max ", Active_Filters{Current_Active_Filter}));
                     end
-
                 else
-                    disp(strcat("Filter_MCPL_MAT_Data : No corresponding data found for filtering: ", Active_Filters{Current_Active_Filter}));
+                    %% Data that requires prior calculation from original table data to filter
+                    %{'Angle', 'Photons'}
+                    if(any(strcmpi(Active_Filters{Current_Active_Filter}, {'Angle'})))
+                        %Angular deviation from Z directional vector
+                        if(strcmpi(Active_Filters{Current_Active_Filter}, 'Angle'))
+                            %Calculate angle from Z dimension (0,0,1) due to Dx, Dy, Dz
+                            Calculated_Data = acosd((File_Data_Store.Dz)./sqrt(File_Data_Store.Dx.^2 + File_Data_Store.Dy.^2 + File_Data_Store.Dz.^2));
+%                         elseif(strcmpi(Active_Filters{Current_Active_Filter}, 'Photons'))
+%                             Calculated_Data = acosd((Mat_File_Reference.Dz)./sqrt(Mat_File_Reference.Dx.^2 + Mat_File_Reference.Dy.^2 + Mat_File_Reference.Dz.^2));
+                        end
+                        %Minimum filter
+                        if(Filters.(Active_Filters{Current_Active_Filter}).Min_Active)
+                            Remove_Index = Calculated_Data < Filters.(Active_Filters{Current_Active_Filter}).Min;
+                            File_Data_Store(Remove_Index,:) = [];
+                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Min ", Active_Filters{Current_Active_Filter}));
+                        end
+                        %Maximum filter
+                        if(Filters.(Active_Filters{Current_Active_Filter}).Max_Active)
+                            Remove_Index = Calculated_Data > Filters.(Active_Filters{Current_Active_Filter}).Max;
+                            File_Data_Store(Remove_Index,:) = [];
+                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Max ", Active_Filters{Current_Active_Filter}));
+                        end
+                    else
+                        disp(strcat("Filter_MCPL_MAT_Data : No corresponding data found for filtering: ", Active_Filters{Current_Active_Filter}));
+                    end
                 end
-                % load data and set Allowed_Index_List to false where the current event doesn't meet the required conditions.
-%                     if(strcmpi(Active_Filters{Current_Active_Filter}, 'Angle'))
-%                         %load Calculate angle from Z dimension (0,0,1) due to Dx, Dy, Dz
-%                         Data = acosd((Mat_File_Reference.Dz)./sqrt(Mat_File_Reference.Dx.^2 + Mat_File_Reference.Dy.^2 + Mat_File_Reference.Dz.^2));
-%                     end
-                    %Compare data to limits, set indexes to false when out of range (min / max)
             else
                 disp(strcat("Filter_MCPL_MAT_Data: Ignoring Invalid Filter Structure: ", Active_Filters{Current_Active_Filter}));
             end

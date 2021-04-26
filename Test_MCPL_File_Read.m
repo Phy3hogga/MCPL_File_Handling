@@ -71,14 +71,19 @@ for Current_Mat_File = 1:length(Mat_File_Path)
     %Weighting
     Filters.Weight.Min = 0.1;
     %Filters.Weight.Max = 35;
+    Filters.Photons.Min = 0.1;
+    %Filters.Photons.Max = 35;
+    Filters.Photons.Interval = 0.01;
+    
     %Create filepath for the filtered MAT file
     Filtered_Mat_File_Path{Current_Mat_File} = fullfile(Output_Directory, strcat(Filename, '-Filtered', Extension));
-    
     %Filter the file according to parameters previously set
     tic
     Filtered_Mat_File = MCPL_Filter_MAT_Data(Mat_File_Path{Current_Mat_File}, Filtered_Mat_File_Path{Current_Mat_File}, Filters);
     toc
     
+    %Create filepath for the Recreated MCPL file
+    MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '-Processed.MCPL'));
     %Convert MAT file back to an MCPL file
     tic
     MCPL_File = MAT_To_MCPL(Filtered_Mat_File, MCPL_Filepath, Display_Write_Progress);
