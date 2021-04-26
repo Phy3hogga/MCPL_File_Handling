@@ -386,8 +386,45 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             elseif(File.Type == 2)
                 disp("MCPL_To_Mat : Processing XBD file into MAT file");
             end
-            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Files);
             
+            %% Datastore processing
+            %File_Chunk data loading from header
+            File_Chunks = Header.File_Chunks;
+            %Datastore directory
+            Datastore_Directory_Path = fullfile(fileparts(File_Path), 'Datastore');
+            %Load datastore files
+            File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
+            %Remove zero weights if enabled
+            if(Header.Remove_Zero_Weights)
+                disp("MCPL_To_MAT : Finding 0 Weight Entries to Remove.");
+                Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
+                disp("MCPL_To_MAT : Finding Total Removed 0 Weight Entries.");
+                Removed_Zero_Count = gather(sum(Index(:)));
+                File_Data_Store(Index,:) = [];
+            else
+                Removed_Zero_Count = 0;
+            end
+            %Sort table if enabled
+            if(Header.Sort_Events_By_Weight)
+                disp("MCPL_To_MAT : Sorting Data by Weight.");
+                [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
+            end
+            %Ensure the output directory is empty
+            if(isfolder(Datastore_Directory_Path))
+                disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
+                Attempt_Directory_Deletion(Datastore_Directory_Path);
+                Attempt_Directory_Creation(Datastore_Directory_Path);
+            end
+            disp("MCPL_To_MAT : Performing Datastore Operations and Saving to Datastore Partitions.");
+            %Write processed datastore data to files
+            write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
+
+            %% Merge datastore files
+            MAT_File_Path{Read_Index} = MCPL_Merge_Chunks(Datastore_Directory_Path, Header, File_Path, Remove_Temp_Files);
+            
+            %% Display output file progress
+            disp(strcat("MCPL_To_MAT : Input Events    : ", num2str(Header.Particles)));
+            disp(strcat("MCPL_To_MAT : Removed Events  : ", num2str(Removed_Zero_Count)));
             %% Cleanup temporary files (including all files within)
             if(Remove_Temp_Files)
                 Temporary_Files_Removed = Attempt_Directory_Deletion(Temp_Output_File_Root);
@@ -400,6 +437,17 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         else
             error(strcat("MCPL_To_MAT : MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
         end
+    end
+    
+    %% Datastore write function (local to parent to save on memory duplication)
+    function Write_Data(info, data)
+        %Turn table into structure
+        data = table2struct(data);
+        %Turn vector structure into a scalar structure containing vector data
+        data = Structure_Vector_To_Scalar(data);
+        data.Datastore_Partition_Information = info;
+        %Write data to file
+        save(info.SuggestedFilename, '-v7.3', '-struct', 'data');
     end
 end
 
@@ -662,155 +710,6 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     end
     if(Header.Opt_Userflag)
         save(File_Chunk.Temp_File_Path, '-append', 'UserFlag');
-    end
-end
-
-%% Merge MCPL File Chunks into a single MAT file
-function Merged_File_Path = MCPL_Merge_Chunks(Header, File_Path, Remove_Temp_Files)
-    %File_Chunk data loading from header
-    File_Chunks = Header.File_Chunks;
-    
-    %% Datastore processing
-    %Datastore directory
-    Datastore_Directory_Path = fullfile(fileparts(File_Path), 'Datastore');
-    %Load datastore files
-    File_Data_Store = tall(fileDatastore({File_Chunks.Temp_File_Path}, 'ReadFcn', @(x)struct2table(load(x)), 'UniformRead', true));
-    %Remove zero weights if enabled
-    if(Header.Remove_Zero_Weights)
-        disp("MCPL_To_MAT : Finding 0 Weight entries to remove.");
-        Index = Floating_Point_Equal([File_Data_Store.Weight], 0);
-        disp("MCPL_To_MAT : Finding number of removed 0 weight entries.");
-        Removed_Zero_Count = gather(sum(Index(:)));
-        File_Data_Store(Index,:) = [];
-    else
-        Removed_Zero_Count = 0;
-    end
-    %Sort table if enabled
-    if(Header.Sort_Events_By_Weight)
-        disp("MCPL_To_MAT : Sorting Data by Weight.");
-        [File_Data_Store] = sortrows(File_Data_Store, {'Weight', 'Energy', 'X', 'Y', 'Z'}, {'descend', 'ascend', 'ascend', 'ascend', 'ascend'}, 'MissingPlacement', 'first');
-    end
-    %Ensure the output directory is empty
-    if(isfolder(Datastore_Directory_Path))
-        disp("MCPL_To_MAT : Datastore directory already exists, clearing directory contents.");
-        Attempt_Directory_Deletion(Datastore_Directory_Path);
-        Attempt_Directory_Creation(Datastore_Directory_Path);
-    end
-    disp("MCPL_To_MAT : Performing Datastore Operations and Saving to Datastore Partitions.");
-    %Write processed datastore data to files
-    write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
-    %Ensure the datastore partitions are ordered correctly, replace chunk files for re-combination
-    File_Chunks = Order_Datastore_Partitions(Datastore_Directory_Path);
-
-    %% Recombination of the different partitions
-    disp("MCPL_To_MAT : Merging Datastore Partitions.");
-    %Load matfile references to each file containing a chunk of processed data
-    Chunk_File_Paths = {File_Chunks(:).Temp_File_Path};
-    Chunk_Matfile_References = cellfun(@matfile, Chunk_File_Paths, 'UniformOutput', false);
-    %Find limits of array sizes for each chunk
-    Chunk_Events = [File_Chunks(:).Events];
-    Total_Chunk_Events = sum(Chunk_Events(:));
-
-    %File path to write the merged data to
-    [Root_File_Path, Filename, ~] = fileparts(File_Path);
-    Merged_File_Path = fullfile(Root_File_Path, strcat(Filename, ".mat"));
-    %Create merged file
-    Merged_File_Reference = matfile(Merged_File_Path);
-    Merged_File_Reference.Properties.Writable = true;
-    
-    %Preallocate variables within the merged MAT file
-    if(Header.Opt_SinglePrecision)
-        Empty_Byte_Type = single(0);
-    else
-        Empty_Byte_Type = double(0);
-    end
-    if(Header.Opt_Polarisation)
-        Merged_File_Reference.Px(Total_Chunk_Events, 1) = Empty_Byte_Type;
-        Merged_File_Reference.Py(Total_Chunk_Events, 1) = Empty_Byte_Type;
-        Merged_File_Reference.Pz(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    end
-    Merged_File_Reference.X(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Y(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Z(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Dx(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Dy(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Dz(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Energy(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    Merged_File_Reference.Time(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    if(Header.Save_EKinDir)
-        Merged_File_Reference.EKinDir_1(Total_Chunk_Events, 1) = Empty_Byte_Type;
-        Merged_File_Reference.EKinDir_2(Total_Chunk_Events, 1) = Empty_Byte_Type;
-        Merged_File_Reference.EKinDir_3(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    end
-    if(~Header.Opt_UniversalWeight)
-        Merged_File_Reference.Weight(Total_Chunk_Events, 1) = Empty_Byte_Type;
-    end
-    if(Header.Opt_UniversalPDGCode == 0)
-        Merged_File_Reference.PDGCode(Total_Chunk_Events, 1) = int32(0);
-    end
-    if(Header.Opt_Userflag)
-        Merged_File_Reference.UserFlag(Total_Chunk_Events, 1) = uint32(0);
-    end
-    clear Empty_Byte_Type;
-
-    %% Combine the different partitions / raw file data
-    Remove_Variables = {'Datastore_Partition_Information'};
-    %Index of current row within the file to write to
-    File_Write_Index = 1;
-    for Current_File = 1:length(Chunk_Matfile_References)
-        %Get variables in file
-        Mat_File_Variables = whos(Chunk_Matfile_References{Current_File});
-        %Remove any unwanted variables
-        Mat_File_Variables(strcmpi({Mat_File_Variables.name}, Remove_Variables)) = [];
-        %Final index to write to
-        File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1;
-        %Copy data for each variable to the combined file
-        for Current_Variable = 1:length(Mat_File_Variables)
-            %Get size of current variable
-            Variable_Size = Mat_File_Variables(Current_Variable).size;
-            if(~isempty(Variable_Size))
-                %Copy data
-                Merged_File_Reference.(Mat_File_Variables(Current_Variable).name)(File_Write_Index:File_Write_Index_End, 1) = reshape(Chunk_Matfile_References{Current_File}.(Mat_File_Variables(Current_Variable).name)(1:Variable_Size(1), 1:Variable_Size(2)), [], 1);
-            else
-                warning(strcat("MCPL_To_MAT : Could not append data for variable : ", Mat_File_Variables(Current_Variable), " from partition ", Chunk_File_Paths(Current_Variable)));
-            end
-        end
-        %Increment for next write pass
-        File_Write_Index = File_Write_Index_End + 1;
-    end
-    
-    %% Display output file progress
-    disp(strcat("MCPL_To_MAT : Input Events             : ", num2str(Header.Particles)));
-    disp(strcat("MCPL_To_MAT : Retained Events          : ", num2str(File_Write_Index_End)));
-    disp(strcat("MCPL_To_MAT : Removed 0 Weight Events  : ", num2str(Removed_Zero_Count)));
-    %Warning for mismatch on number of events read / discarded from total
-    if((Header.Particles - File_Write_Index_End) ~= Removed_Zero_Count)
-        disp("MCPL_To_MAT : Warning: Total number of events read and removed zero weight events mismatch.");
-    end
-    
-    %% Edit header information with removed events
-    %Edit the number of events in the stored file
-    Header.Particles = File_Write_Index_End;
-    %Remove File_Chunks from the header data (No longer needed now data is combined)
-    Header.File_Chunks = [];
-    
-    %% Copy header into the data file last (ensures writing is finished, if misssing file is invalid)
-    Merged_File_Reference.Header = Header;
-    
-    %Delete datastore directory
-    if(Remove_Temp_Files)
-        Attempt_Directory_Deletion(Datastore_Directory_Path);
-    end
-    
-    %% Datastore write function (local to parent to save on memory duplication)
-    function Write_Data(info, data)
-        %Turn table into structure
-        data = table2struct(data);
-        %Turn vector structure into a scalar structure containing vector data
-        data = Structure_Vector_To_Scalar(data);
-        data.Datastore_Partition_Information = info;
-        %Write data to file
-        save(info.SuggestedFilename, '-v7.3', '-struct', 'data');
     end
 end
 
