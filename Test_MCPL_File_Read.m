@@ -48,13 +48,12 @@ Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
 toc
 %Perform work on the MAT file
 for Current_Mat_File = 1:length(Mat_File_Path)
-    %Create new filepath for the MAT file to end up in
-    [Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
-    Parent_Directory = fileparts(Directory);
-    Output_Directory = fullfile(Parent_Directory, 'DEBUG');
+    %Create new directory to place processed files into
+    [Output_Directory, Filename, Extension] = fileparts(Mat_File_Path{Current_Mat_File});
+    Parent_Directory = fileparts(Output_Directory);
+    Output_Directory = fullfile(Parent_Directory, 'Processed-Output');
     Attempt_Directory_Creation(Output_Directory);
-    MCPL_Filepath = fullfile(Output_Directory, strcat(Filename, '.MCPL'));
-    
+
     %% Filter data within the MAT file
     %Position the events land on the detection plane
     Filters.X.Min = -0.04;
