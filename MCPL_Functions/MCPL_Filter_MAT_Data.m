@@ -256,7 +256,6 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
             warning("Filter_MCPL_MAT_Data : No data remains after filtering, skipping writing file. Returning raw data file as output.");
             Filtered_Mat_File_Path = Mat_File_Path;
         else
-            disp("Filter_MCPL_MAT_Data : Performing Datastore Operations and Saving to Datastore Partitions.");
             %Write processed datastore data to files
             Datastore_Directory_Path = fullfile(fileparts(Filtered_Mat_File_Path), 'Filtered');
             %Ensure the output directory is empty
@@ -265,15 +264,16 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                 Attempt_Directory_Deletion(Datastore_Directory_Path);
                 Attempt_Directory_Creation(Datastore_Directory_Path);
             end
-            Attempt_Directory_Creation(Datastore_Directory_Path);
+            disp("Filter_MCPL_MAT_Data : Performing Datastore Operations and Saving to Datastore Partitions.");
             write(fullfile(Datastore_Directory_Path, 'Partition_*.mat'), File_Data_Store, 'WriteFcn', @Write_Data);
-            disp(strcat("Filter_MCPL_MAT_Data : Input Events    : ", num2str(Num_Events_Start)));
-            disp(strcat("Filter_MCPL_MAT_Data : Removed Events  : ", num2str(Num_Events_Start - Num_Events_End)));
             %% Merge datastore files
             Filtered_Mat_File_Path = MCPL_Merge_Chunks(Datastore_Directory_Path, Header, Filtered_Mat_File_Path, true);
+            %% Display output file progress
+            disp(strcat("Filter_MCPL_MAT_Data : Input Events    : ", num2str(Num_Events_Start)));
+            disp(strcat("Filter_MCPL_MAT_Data : Removed Events  : ", num2str(Num_Events_Start - Num_Events_End)));
         end
     else
-        error("Filter_MCPL_Mat_Data : MAT file not found");
+        error("Filter_MCPL_Mat_Data : MAT file not found.");
     end
     
     %% Datastore write function (local to parent to save on memory duplication)
