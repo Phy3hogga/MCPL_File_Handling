@@ -233,26 +233,70 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                     end
                 else
                     %% Data that requires prior calculation from original table data to filter
-                    %{'Angle', 'Photons'}
-                    if(any(strcmpi(Active_Filters{Current_Active_Filter}, {'Angle'})))
-                        %Angular deviation from Z directional vector
+                    if(any(strcmpi(Active_Filters{Current_Active_Filter}, {'Angle', 'Photons'})))
+                        %% Angular deviation from Z directional vector
                         if(strcmpi(Active_Filters{Current_Active_Filter}, 'Angle'))
                             %Calculate angle from Z dimension (0,0,1) due to Dx, Dy, Dz
                             Calculated_Data = acosd((File_Data_Store.Dz)./sqrt(File_Data_Store.Dx.^2 + File_Data_Store.Dy.^2 + File_Data_Store.Dz.^2));
-%                         elseif(strcmpi(Active_Filters{Current_Active_Filter}, 'Photons'))
-%                             Calculated_Data = acosd((Mat_File_Reference.Dz)./sqrt(Mat_File_Reference.Dx.^2 + Mat_File_Reference.Dy.^2 + Mat_File_Reference.Dz.^2));
+                            %Minimum filter
+                            if(Filters.(Active_Filters{Current_Active_Filter}).Min_Active)
+                                Remove_Index = Calculated_Data < Filters.(Active_Filters{Current_Active_Filter}).Min;
+                                File_Data_Store(Remove_Index,:) = [];
+                                disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Min ", Active_Filters{Current_Active_Filter}));
+                            end
+                            %Maximum filter
+                            if(Filters.(Active_Filters{Current_Active_Filter}).Max_Active)
+                                Remove_Index = Calculated_Data > Filters.(Active_Filters{Current_Active_Filter}).Max;
+                                File_Data_Store(Remove_Index,:) = [];
+                                disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Max ", Active_Filters{Current_Active_Filter}));
+                            end
                         end
-                        %Minimum filter
-                        if(Filters.(Active_Filters{Current_Active_Filter}).Min_Active)
-                            Remove_Index = Calculated_Data < Filters.(Active_Filters{Current_Active_Filter}).Min;
+                        %% By photon contribution at specific p-value bands
+                        if(strcmpi(Active_Filters{Current_Active_Filter}, 'Photons'))
+                            %% Get contribution of each group of p-values in terms of photons
+                            %Get histogram data (hidden figure)
+                            Histogram_Figure = Get_Figure([], true);
+                            Histogram_Num_Bins = round(sqrt(gather(height(File_Data_Store))));
+                            Histogram = histogram(File_Data_Store.Weight, Histogram_Num_Bins);
+                            %Get relevant data from the histogram figure
+                            Histogram_Bin_Edges = Histogram.BinEdges;
+                            Histogram_Bin_Width = Histogram.BinWidth;
+                            Histogram_Counts = Histogram.Values;
+                            %Close the hidden histogram figure
+                            close(Histogram_Figure);
+                            %get intervals for the histogram bins in a 1:1 index relationship
+                            Histogram_Bin_Start = Histogram_Bin_Edges(1:end-1);
+                            Histogram_Bin_End = Histogram_Bin_Edges(2:end);
+                            Histogram_Bins = Histogram_Bin_Start + Histogram_Bin_Width/2;
+                            Photon_Contribution = Histogram_Bins.*Histogram_Counts;
+                            Relative_Photon_Contribution = Photon_Contribution./max(Photon_Contribution);
+                            Absolute_Photon_Contribution = Photon_Contribution./sum(Photon_Contribution);
+                            %% find groups of sequential histogram bins to remove
+                            Remove_Histogram_Bins = zeros(size(Relative_Photon_Contribution),'logical');
+                            if(Filters.(Active_Filters{Current_Active_Filter}).Min_Active)
+                                Remove_Histogram_Bins = Remove_Histogram_Bins | (Relative_Photon_Contribution < Filters.(Active_Filters{Current_Active_Filter}).Min);
+                            end
+                            if(Filters.(Active_Filters{Current_Active_Filter}).Max_Active)
+                                Remove_Histogram_Bins = Remove_Histogram_Bins | (Relative_Photon_Contribution > Filters.(Active_Filters{Current_Active_Filter}).Max);
+                            end
+                            [Group_Index_Start, Group_Index_End] = Find_Logical_Groups(Remove_Histogram_Bins);
+                            if(numel(Group_Index_Start) ~= numel(Group_Index_End))
+                                error("Filter_MCPL_MAT_Data : Expected photon groups to have the same number of starting and ending indicies.");
+                            end
+                            
+                            %% Filtering
+                            %Create a 1:1 index list corresponding to the histogram
+                            Remove_Index = File_Data_Store.X;
+                            Remove_Index(:) = 0;
+                            %Filter out by group
+                            Total_Percent_Filtered = 0;
+                            for Current_Group_Index = 1:length(Group_Index_Start)
+                                Total_Percent_Filtered = Total_Percent_Filtered + sum(Absolute_Photon_Contribution(Group_Index_Start:Group_Index_End))*100;
+                                disp(strcat("Filter_MCPL_MAT_Data : Filtering photon group ",num2str(Current_Group_Index), " between the p interval ", num2str(Histogram_Bin_Start(Current_Group_Index))," to ", num2str(Histogram_Bin_End(Current_Group_Index)), " with a contribution of ", num2str(sum(Absolute_Photon_Contribution(Group_Index_Start(Current_Group_Index):Group_Index_End(Current_Group_Index)))*100), "% of photons."));
+                                Remove_Index = Remove_Index | ((Histogram_Bin_Start(Current_Group_Index) >= File_Data_Store.Weight) & (File_Data_Store.Weight < Histogram_Bin_End(Current_Group_Index)));
+                            end
                             File_Data_Store(Remove_Index,:) = [];
-                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Min ", Active_Filters{Current_Active_Filter}));
-                        end
-                        %Maximum filter
-                        if(Filters.(Active_Filters{Current_Active_Filter}).Max_Active)
-                            Remove_Index = Calculated_Data > Filters.(Active_Filters{Current_Active_Filter}).Max;
-                            File_Data_Store(Remove_Index,:) = [];
-                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to Max ", Active_Filters{Current_Active_Filter}));
+                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to ", Active_Filters{Current_Active_Filter}));
                         end
                     else
                         disp(strcat("Filter_MCPL_MAT_Data : No corresponding data found for filtering: ", Active_Filters{Current_Active_Filter}));
