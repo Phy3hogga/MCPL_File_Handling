@@ -5,13 +5,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         error("MCPL_To_MAT : File path Input Required.");
     elseif(nargin == 1)
         if(~(isstring(MCPL_File_Path) || ischar(MCPL_File_Path)))
-            error("MCPL_To_Mat : Expected File Path to be a single string.");
+            error("MCPL_To_MAT : Expected File Path to be a single string.");
         end
-        warning("MCPL_To_Mat : No read parameters supplied, using default settings.");
+        warning("MCPL_To_MAT : No read parameters supplied, using default settings.");
     end
     if(nargin == 2)
         if(~isstruct(Read_Parameters))
-            error("MCPL_To_Mat : Expected Read Parameters to be a structure.");
+            error("MCPL_To_MAT : Expected Read Parameters to be a structure.");
         end
     end
     if(~exist('Read_Parameters','var'))
@@ -86,14 +86,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 RAR_Parameters = struct();
             end
             if(~Skip_Uncompress)
-                disp("MCPL_To_Mat : Attempting to uncompress .GZ archive.");
+                disp("MCPL_To_MAT : Attempting to uncompress .GZ archive.");
                 Successful_Uncompress = UNRAR(MCPL_File_Path, Uncompressed_File_Path, RAR_Parameters);
             else
                 Successful_Uncompress = 1;
             end
             clear Skip_Uncompress RAR_Parameters;
             if(~Successful_Uncompress)
-                error('MCPL_To_Mat : Error uncompressing GZ file format.');
+                error('MCPL_To_MAT : Error uncompressing GZ file format.');
             end
             MCPL_File_List = {};
             File_Path_Search = Uncompressed_File_Path;
@@ -107,7 +107,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             MCPL_File_List{1} = MCPL_File_Path;
             File_Path_Search = MCPL_File_Path;
         else
-            error('MCPL_To_Mat : Unexpected file format');
+            error('MCPL_To_MAT : Unexpected file format');
         end
     elseif(isfolder(MCPL_File_Path))
         %If a directory is supplied, search the directory path for MCPL
@@ -115,7 +115,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         File_Path_Search = MCPL_File_Path;
         MCPL_File_List = {};
     else
-        error('MCPL_To_Mat : Input File or Directory does not exist.');
+        error('MCPL_To_MAT : Input File or Directory does not exist.');
     end
     clear Extension Filename Directory_Path MCPL_File_Path;
 
@@ -127,7 +127,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         %Check directory lists aren't empty
         if(isequal(MCPL_File_Search, struct()))
             if(isequal(XBD_File_Search, struct()))
-                error('MCPL_To_Mat : No MCPL or XBD files found.');
+                error('MCPL_To_MAT : No MCPL or XBD files found.');
                 MCPL_File_List = [];
             else
                 MCPL_File_List = XBD_File_Search;
@@ -144,10 +144,10 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         MCPL_File_List = dir(MCPL_File_List{1});
     end
     if(isempty(fieldnames(MCPL_File_List)))
-        error('MCPL_To_Mat : No .MCPL files found');
+        error('MCPL_To_MAT : No .MCPL files found');
     end
     if(isempty(MCPL_File_List))
-        error('MCPL_To_Mat : No .MCPL files found within Directory');
+        error('MCPL_To_MAT : No .MCPL files found within Directory');
     end
     clear File_Path_Search;
     
@@ -161,21 +161,21 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
         [~, ~, Extension] = fileparts(File_Path);
         %% Switches for MCPL and XBD file reading (File.Type = 1 for MCPL, File.Type = 2 for XBD)
         if(strcmpi(Extension, '.mcpl'))
-            disp(strcat("MCPL_To_Mat : Reading MCPL file : ", File_Path));
+            disp(strcat("MCPL_To_MAT : Reading MCPL file : ", File_Path));
             File.Type = 1;
         elseif(strcmpi(Extension, '.xbd'))
-            disp(strcat("MCPL_To_Mat : Reading XBD file : ", File_Path));
+            disp(strcat("MCPL_To_MAT : Reading XBD file : ", File_Path));
             File.Type = 2;
         else
-            error(strcat("MCPL_To_Mat : Unknown file extension for file : ", File_Path));
+            error(strcat("MCPL_To_MAT : Unknown file extension for file : ", File_Path));
         end
         File_ID = fopen(File_Path, 'r');
         %% Read file header
         if(File.Type == 1)
-            disp("MCPL_To_Mat : Reading MCPL Header");
+            disp("MCPL_To_MAT : Reading MCPL Header");
             Header = MCPL_Read_Header(File_ID);
         elseif(File.Type == 2)
-            disp("MCPL_To_Mat : Creating placeholder MCPL Header for XBD file");
+            disp("MCPL_To_MAT : Creating placeholder MCPL Header for XBD file");
             Header.Endian_Switch = 0;
             Header.Endian.T32 = 'l';
             Header.Endian.T64 = 'a';
@@ -298,12 +298,12 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             Temp_Output_File_Root = fullfile(MCPL_File_List(Read_Index).folder, filesep, 'TEMPORARY');
             Directory_Creation_Success = Attempt_Directory_Creation(Temp_Output_File_Root);
             if(~Directory_Creation_Success)
-                warning(strcat("MCPL_To_Mat : Failed to create temporary output directory for: ", MCPL_File_List(Read_Index).name));
+                warning(strcat("MCPL_To_MAT : Failed to create temporary output directory for: ", MCPL_File_List(Read_Index).name));
             end
             if(File.Type == 1)
-                disp("MCPL_To_Mat : Reading MCPL Data");
+                disp("MCPL_To_MAT : Reading MCPL Data");
             elseif(File.Type == 2)
-                disp("MCPL_To_Mat : Reading XBD Data");
+                disp("MCPL_To_MAT : Reading XBD Data");
             end
             %% Parallel core processing setup
             if(Parpool_Num_Cores > 1)
@@ -375,9 +375,9 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             
             %% Combine all output file(s)
             if(File.Type == 1)
-                disp("MCPL_To_Mat : Processing MCPL file into MAT file");
+                disp("MCPL_To_MAT : Processing MCPL file into MAT file");
             elseif(File.Type == 2)
-                disp("MCPL_To_Mat : Processing XBD file into MAT file");
+                disp("MCPL_To_MAT : Processing XBD file into MAT file");
             end
             
             %% Datastore processing
