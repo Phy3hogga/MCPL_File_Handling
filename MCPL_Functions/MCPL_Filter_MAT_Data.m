@@ -296,7 +296,7 @@ function Filtered_Mat_File_Path = MCPL_Filter_MAT_Data(Mat_File_Path, Filtered_M
                                 Remove_Index = Remove_Index | ((Histogram_Bin_Start(Current_Group_Index) >= File_Data_Store.Weight) & (File_Data_Store.Weight < Histogram_Bin_End(Current_Group_Index)));
                             end
                             File_Data_Store(Remove_Index,:) = [];
-                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to ", Active_Filters{Current_Active_Filter}));
+                            disp(strcat("Filter_MCPL_MAT_Data : Removed ", num2str(gather(sum(Remove_Index))), " Events due to ", Active_Filters{Current_Active_Filter}, " Removing ", num2str(Total_Percent_Filtered), "% of Photons."));
                         end
                     else
                         disp(strcat("Filter_MCPL_MAT_Data : No corresponding data found for filtering: ", Active_Filters{Current_Active_Filter}));
