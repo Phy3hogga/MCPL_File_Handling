@@ -5,22 +5,8 @@ close all;
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
 %% Test Data
 %32 bit data for testing
-File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Polarisation_Single_Precision.mcpl.gz';
-%64 bit data for testing
-File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
-%64 bit dataset (small file)
-%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
-%File_Path = 'F:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
-%File_Path = 'F:\MCPL_Data\Test';
-
-%Dave's Common XBD Data
-%File_Path = 'F:\MCPL_Data\XBD_Data_2';
-
-%Prop_Z0
-%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
-%No PROP_Z0
-%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210401_143359\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
-
+Directory_Path = 'D:\Data_Capture\Alex_Hex\data';
+List_File_Path = Search_Files(Directory_Path, '.mcpl');
 
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
@@ -36,9 +22,9 @@ Read_Parameters.Remove_Zero_Weights = true;
 %If retaining EKinDir data (reccomended setting to true if wanting to later use subsequent data in simulations)
 Read_Parameters.Save_EKinDir = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
-Read_Parameters.Skip_Uncompress = false;
+Read_Parameters.Skip_Uncompress = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
-Read_Parameters.Parpool_Num_Cores = 4;
+Read_Parameters.Parpool_Num_Cores = 1;
 %Temporary directory to use for constructing / operating on datastore
 Read_Parameters.Temp_Directory = 'F:\Windows_Temp_Files';
 %Add RAR Parameters to the Read Parameters
@@ -47,7 +33,7 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 Display_Write_Progress = true;
 %% Convert MCPL file to MAT file format
 tic
-Mat_File_Path = MCPL_To_MAT(File_Path, Read_Parameters);
+Mat_File_Path = MCPL_To_MAT(Directory_Path, Read_Parameters);
 toc
 %Perform work on the MAT file
 for Current_Mat_File = 1:length(Mat_File_Path)
