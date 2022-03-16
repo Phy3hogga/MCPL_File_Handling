@@ -265,6 +265,12 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
                 if(Header.Opt_Userflag)
                     [Event_Byte_Count, Byte_Split.UserFlag.Start, Byte_Split.UserFlag.End] = Get_Byte_Position(Event_Byte_Count, 4);
                 end
+                %% Calculate number of events within the file if a zero particle count is returned
+                if(Header.Particles == 0)
+                    Header.Particles = floor((File.End - Header.End) / Event_Byte_Count);
+                    File.End = Header.End + (Header.Particles * Event_Byte_Count);
+                    File.Data = File.End - Header.End;
+                end
             elseif(File.Type == 2)
                 %Position data within the photon byte string
                 [Event_Byte_Count, Byte_Split.X.Start, Byte_Split.X.End] = Get_Byte_Position(Event_Byte_Count, Byte_Size);
@@ -286,6 +292,7 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(isfield(Header, 'Opt_ParticleSize'))
                 if(Header.Opt_ParticleSize ~= Event_Byte_Count)
                     warning("MCPL To MAT : Particle size listed in file doesn't match split data");
+                    Header.Opt_ParticleSize = Event_Byte_Count;
                 end
             else
                 Header.Opt_ParticleSize = Header.Opt_ParticleSize;
@@ -614,28 +621,29 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
     %% Input Handling
     if(Header.File_Type == 1)
         %% MCPL File Read
-        Dynamic_Data_Size = Header.Byte_Size * File_Chunk.Events;
+        %Dynamic_Data_Size = Header.Byte_Size * File_Chunk.Events;
         if(Header.Opt_Polarisation)
-            Px = typecast(reshape(File_Data(Header.Byte_Split.Px.Start:Header.Byte_Split.Px.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-            Py = typecast(reshape(File_Data(Header.Byte_Split.Py.Start:Header.Byte_Split.Py.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-            Pz = typecast(reshape(File_Data(Header.Byte_Split.Pz.Start:Header.Byte_Split.Pz.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
+            %Px = typecast(reshape(File_Data(Header.Byte_Split.Px.Start:Header.Byte_Split.Px.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
+            Px = typecast(reshape(File_Data(Header.Byte_Split.Px.Start:Header.Byte_Split.Px.End,:), [], 1), Header.Byte_Type);
+            Py = typecast(reshape(File_Data(Header.Byte_Split.Py.Start:Header.Byte_Split.Py.End,:), [], 1), Header.Byte_Type);
+            Pz = typecast(reshape(File_Data(Header.Byte_Split.Pz.Start:Header.Byte_Split.Pz.End,:), [], 1), Header.Byte_Type);
         end
-        X = typecast(reshape(File_Data(Header.Byte_Split.X.Start:Header.Byte_Split.X.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        Y = typecast(reshape(File_Data(Header.Byte_Split.Y.Start:Header.Byte_Split.Y.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        Z = typecast(reshape(File_Data(Header.Byte_Split.Z.Start:Header.Byte_Split.Z.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        EKinDir_1 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_1.Start:Header.Byte_Split.EKinDir_1.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        EKinDir_2 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_2.Start:Header.Byte_Split.EKinDir_2.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        EKinDir_3 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_3.Start:Header.Byte_Split.EKinDir_3.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
-        Time = typecast(reshape(File_Data(Header.Byte_Split.Time.Start:Header.Byte_Split.Time.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
+        X = typecast(reshape(File_Data(Header.Byte_Split.X.Start:Header.Byte_Split.X.End,:), [], 1), Header.Byte_Type);
+        Y = typecast(reshape(File_Data(Header.Byte_Split.Y.Start:Header.Byte_Split.Y.End,:), [], 1), Header.Byte_Type);
+        Z = typecast(reshape(File_Data(Header.Byte_Split.Z.Start:Header.Byte_Split.Z.End,:), [], 1), Header.Byte_Type);
+        EKinDir_1 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_1.Start:Header.Byte_Split.EKinDir_1.End,:), [], 1), Header.Byte_Type);
+        EKinDir_2 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_2.Start:Header.Byte_Split.EKinDir_2.End,:), [], 1), Header.Byte_Type);
+        EKinDir_3 = typecast(reshape(File_Data(Header.Byte_Split.EKinDir_3.Start:Header.Byte_Split.EKinDir_3.End,:), [], 1), Header.Byte_Type);
+        Time = typecast(reshape(File_Data(Header.Byte_Split.Time.Start:Header.Byte_Split.Time.End,:), [], 1), Header.Byte_Type);
         if(~Header.Opt_UniversalWeight)
-            Weight = typecast(reshape(File_Data(Header.Byte_Split.Weight.Start:Header.Byte_Split.Weight.End,:), Dynamic_Data_Size, 1), Header.Byte_Type);
+            Weight = typecast(reshape(File_Data(Header.Byte_Split.Weight.Start:Header.Byte_Split.Weight.End,:), [], 1), Header.Byte_Type);
         end
         %Fixed size data
         if(Header.Opt_UniversalPDGCode == 0)
-            PDGCode = typecast(reshape(File_Data(Header.Byte_Split.PDGCode.Start:Header.Byte_Split.PDGCode.End,:), Dynamic_Data_Size, 1), 'int32');
+            PDGCode = typecast(reshape(File_Data(Header.Byte_Split.PDGCode.Start:Header.Byte_Split.PDGCode.End,:), [], 1), 'int32');
         end
         if(Header.Opt_Userflag)
-            UserFlag = typecast(reshape(File_Data(Header.Byte_Split.UserFlag.Start:Header.Byte_Split.UserFlag.End,:), Dynamic_Data_Size, 1), 'uint32');
+            UserFlag = typecast(reshape(File_Data(Header.Byte_Split.UserFlag.Start:Header.Byte_Split.UserFlag.End,:), [], 1), 'uint32');
         end
         %% Adjust endian-ness of byte order (Untested due to development system constraints)
         if(Header.Endian_Switch)
