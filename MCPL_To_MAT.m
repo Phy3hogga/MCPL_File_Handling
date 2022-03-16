@@ -502,6 +502,7 @@ function Header = MCPL_Read_Header(File_ID)
         N_Blobs = fread(File_ID, 1, 'uint32', 0, Endian.T32);
         %Optional Header Information
         Header.Opt_Userflag = fread(File_ID, 1, 'uint32', 0, Endian.T32);
+        %Header.Opt_Userflag = 0;
         Header.Opt_Polarisation = fread(File_ID, 1, 'uint32', 0, Endian.T32);
         Header.Opt_SinglePrecision = fread(File_ID, 1, 'uint32', 0, Endian.T32);
         Header.Opt_UniversalPDGCode = fread(File_ID, 1, 'int32', 0, Endian.T32);
