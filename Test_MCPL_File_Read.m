@@ -5,18 +5,21 @@ close all;
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
 %% Test Data
 %32 bit data for testing
-File_Path = 'F:\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Polarisation_Single_Precision.mcpl.gz';
+File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210304_145727\MCPL_Output_No_Polarisation_Single_Precision.mcpl.gz';
 %64 bit data for testing
-%File_Path = 'F:\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
+File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210303_211044\MCPL_Output_Diffraction_Test_1.mcpl.gz';
 %64 bit dataset (small file)
-File_Path = 'F:\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
+%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210329_171051\MCPL_Output_Diffraction_Test_DBL.mcpl.gz';
 %File_Path = 'F:\MCPL_Data\XBD_Data\sample_C7H5N3O6_4B_7.xbd';
 %File_Path = 'F:\MCPL_Data\Test';
 
+%Dave's Common XBD Data
+%File_Path = 'F:\MCPL_Data\XBD_Data_2';
+
 %Prop_Z0
-%File_Path = 'F:\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
+%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210401_143954\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
 %No PROP_Z0
-%File_Path = 'F:\MCPL_Output_Diffraction_Test_20210401_143359\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
+%File_Path = 'F:\MCPL_Data\MCPL_Output_Diffraction_Test_20210401_143359\MCPL_Monitor_Diffraction_Test_SGL.mcpl.gz';
 
 
 %% Parameters for WinRAR implementation
@@ -56,22 +59,22 @@ for Current_Mat_File = 1:length(Mat_File_Path)
 
     %% Filter data within the MAT file
     %Position the events land on the detection plane
-    Filters.X.Min = -0.04;
-    Filters.X.Max = 0.04;
-    Filters.Y.Min = -0.04;
-    Filters.Y.Max = 0.04;
-    %Filters.Z.Min = 0;
-    %Filters.Z.Max = 1;
-    %Angle from the normal (to Z), must be +ve valued
-    Filters.Angle.Min = 0;
-    Filters.Angle.Max = 45;
-    %Energy [KeV]
-    Filters.Energy.Min = 0;
-    Filters.Energy.Max = 130;
-    %Weighting
-    Filters.Weight.Min = 0.1;
+%     Filters.X.Min = -0.04;
+%     Filters.X.Max = 0.04;
+%     Filters.Y.Min = -0.04;
+%     Filters.Y.Max = 0.04;
+%     %Filters.Z.Min = 0;
+%     %Filters.Z.Max = 1;
+%     %Angle from the normal (to Z), must be +ve valued
+%     Filters.Angle.Min = 0;
+%     Filters.Angle.Max = 45;
+%     %Energy [KeV]
+%     Filters.Energy.Min = 0;
+%     Filters.Energy.Max = 130;
+%     %Weighting
+%     Filters.Weight.Min = 0.1;
     %Filters.Weight.Max = 35;
-    Filters.Photons.Min = 0.1;
+    Filters.Photons.Min = 0.05;
     %Filters.Photons.Max = 35;
     Filters.Photons.Interval = 0.01;
     
