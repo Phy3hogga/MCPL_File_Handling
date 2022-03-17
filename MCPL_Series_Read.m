@@ -6,6 +6,7 @@ Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','
 %% Test Data
 %32 bit data for testing
 Directory_Path = 'D:\Data_Capture\Alex_Hex\data';
+%Directory_Path = 'D:\Data_Capture\0Deg\data';
 List_File_Path = Search_Files(Directory_Path, '.mcpl');
 Merged_Filename = 'merged';
 
@@ -40,6 +41,68 @@ Mat_File_Path = MCPL_To_MAT(Directory_Path, Read_Parameters);
 toc
 Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
 load(Mat_File_Path);
+Event_Angle = acosd(Dz);
+
+figure();
+scatter3(X, Y, Z, [], Event_Angle, '.');
+xlabel('X [m]');
+ylabel('Y [m]');
+
+figure();
+scatter3(Dx, Dy, Dz, [], Event_Angle, '.');
+xlabel('X [m]');
+ylabel('Y [m]');
+
+figure();
+histogram(Event_Angle);
+xlabel(['Incident Angle [', char(176), ']']);
+ylabel('Frequency');
+
+figure();
+scatter3(X, Y, Event_Angle, [], Event_Angle, '.');
+xlabel('X [m]');
+ylabel('Y [m]');
+
+Z_Target = 397e-3;
+%Find propogation vector
+Prop = (Z_Target - Z)./Dz;
+%Calculate propotation points in X,Y,Z
+Prop_Z = Prop .* Dz + Z;
+Prop_X = Prop .* Dx + X;
+Prop_Y = Prop .* Dy + Y;
+%Display propogated data
+scatter3(Prop_X, Prop_Y, Prop_Z, [], Event_Angle, '.');
+
+%Rebinning parameters
+Bins_Num = 250;
+Bin_Tol = 0.1e-3;
+%Create bins
+X_Bins = linspace(min(Prop_X(:)) - Bin_Tol, max(Prop_X(:)) + Bin_Tol, Bins_Num + 1);
+Y_Bins = linspace(min(Prop_Y(:)) - Bin_Tol, max(Prop_Y(:)) + Bin_Tol, Bins_Num + 1);
+[Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
+Weighted_Binned_Angle_Mean = zeros(size(Grid_X));
+Weighted_Binned_Angle_Std = zeros(size(Grid_X));
+for Current_X = 1:length(X_Bins) - 1
+    for Current_Y = 1:length(Y_Bins) - 1
+        Index = ((X_Bins(Current_X) < Prop_X) & (Prop_X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Prop_Y) & (Prop_Y <= Y_Bins(Current_Y + 1));
+        Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
+        Weighted_Angle = Event_Angle(Index);
+        Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
+        Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
+    end
+end
+figure();
+Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Mean,'FaceAlpha', .8);
+set(Surf_Fig, 'linestyle', 'none');
+figure();
+Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Std,'FaceAlpha', .8);
+set(Surf_Fig, 'linestyle', 'none');
+%Create binned 2d histogram for x-y data
+% xzCount = histcounts2(Prop_X(:), Prop_Y(:), X_Bins, Y_Bins);
+% figure();
+% surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), xzCount,'FaceAlpha', .8);
+
+
 
 %Perform work on the MAT file
 % for Current_Mat_File = 1:length(Mat_File_Path)
