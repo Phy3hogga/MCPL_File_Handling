@@ -86,7 +86,7 @@ for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
         Index = ((X_Bins(Current_X) < Prop_X) & (Prop_X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Prop_Y) & (Prop_Y <= Y_Bins(Current_Y + 1));
         Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
-        Weighted_Angle = Event_Angle(Index);
+        %Weighted_Angle = Event_Angle(Index);
         Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
         Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
     end
