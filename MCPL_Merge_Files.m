@@ -58,14 +58,18 @@ function Merged_File_Path = MCPL_Merge_Files(Datastore_Directory_Path, Output_Fi
     clear Empty_Byte_Type;
 
     %% Combine the different partitions / raw file data
-    Remove_Variables = {'Datastore_Partition_Information'};
+    Remove_Variables = {'Datastore_Partition_Information', 'Header'};
     %Index of current row within the file to write to
     File_Write_Index = 1;
     for Current_File = 1:length(Chunk_Matfile_References)
         %Get variables in file
         Mat_File_Variables = whos(Chunk_Matfile_References{Current_File});
         %Remove any unwanted variables
-        Mat_File_Variables(strcmpi({Mat_File_Variables.name}, Remove_Variables)) = [];
+        if(~isempty(Remove_Variables))
+            for Current_Variable = 1:length(Remove_Variables)
+                Mat_File_Variables(strcmpi({Mat_File_Variables.name}, Remove_Variables{Current_Variable})) = [];
+            end
+        end
         %Final index to write to
         File_Write_Index_End = File_Write_Index + Chunk_Events(Current_File) - 1;
         %Copy data for each variable to the combined file
