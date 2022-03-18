@@ -5,7 +5,7 @@ close all;
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
 %% Test Data
 %32 bit data for testing
-Directory_Path = 'D:\Data_Capture\Alex_Hex\data';
+Directory_Path = 'D:\Data_Capture\xbd_test2';
 %Directory_Path = 'D:\Data_Capture\0Deg\data';
 List_File_Path = Search_Files(Directory_Path, '.mcpl');
 Merged_Filename = 'merged';
@@ -30,7 +30,7 @@ Read_Parameters.Skip_Uncompress = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
 Read_Parameters.Parpool_Num_Cores = 1;
 %Temporary directory to use for constructing / operating on datastore
-Read_Parameters.Temp_Directory = 'F:\Windows_Temp_Files';
+Read_Parameters.Temp_Directory = 'D:\Windows_Temp_Files';
 %Add RAR Parameters to the Read Parameters
 Read_Parameters.RAR_Parameters = RAR_Parameters;
 
@@ -86,7 +86,7 @@ for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
         Index = ((X_Bins(Current_X) < Prop_X) & (Prop_X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Prop_Y) & (Prop_Y <= Y_Bins(Current_Y + 1));
         Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
-        %Weighted_Angle = Event_Angle(Index);
+        Weighted_Angle = Event_Angle(Index);
         Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
         Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
     end
@@ -151,3 +151,11 @@ set(Surf_Fig, 'linestyle', 'none');
 %     % Compare initial MAT and recreated MAT files match
 %     %visdiff(Mat_File_Path{Current_Mat_File}, Mat_File_Path_2{1});
 % end
+
+figure = Get_Figure([], true);
+for Current_Ray = 1:length(Prop_X)
+    figure = Get_Figure(figure, true);
+    hold on;
+    plot3([X(Current_Ray), Prop_X(Current_Ray)], [Y(Current_Ray), Prop_Y(Current_Ray)], [Z(Current_Ray), Prop_Z(Current_Ray)]);
+end
+figure = Get_Figure(figure, false);
