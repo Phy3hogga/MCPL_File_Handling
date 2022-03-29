@@ -1,8 +1,9 @@
 clear all;
 close all;
 
-%Include directories to external GIT libraries
+%Include directories to external GIT repositories 
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
+
 %% Test Data
 %32 bit data for testing
 Directory_Path = 'D:\Data_Capture\Alex_Hex2';
@@ -12,6 +13,7 @@ Merged_Filename = 'merged';
 
 [Root_File_Path, Filename, ~] = fileparts(Directory_Path);
 Merged_File_Path = fullfile(Root_File_Path, strcat(Merged_Filename, ".mat"));
+
 %% Parameters for WinRAR implementation
 %Path to WinRAR executable
 %RAR_Parameters.WinRAR_Path = 'C:\Program Files\WinRAR\WinRAR.exe';
@@ -21,7 +23,7 @@ RAR_Parameters.Overwrite_Mode = true;
 %% Parameters for MCPL processing to MAT file
 %If events are sorted in descending order of weight with the most significant events at the top of the file. (true = sort)
 Read_Parameters.Sort_Events_By_Weight = true;
-%If events with exactly 0 w5eighting (represent no photons) are to be removed (true = removed)
+%If events with exactly 0 weighting (represent no photons) are to be removed (true = removed)
 Read_Parameters.Remove_Zero_Weights = true;
 %If retaining EKinDir data (reccomended setting to true if wanting to later use subsequent data in simulations)
 Read_Parameters.Save_EKinDir = true;
@@ -36,33 +38,44 @@ Read_Parameters.RAR_Parameters = RAR_Parameters;
 
 Display_Write_Progress = true;
 %% Convert MCPL file to MAT file format
-tic
 Mat_File_Path = MCPL_To_MAT(Directory_Path, Read_Parameters);
-toc
+
+%% If multiple files provided by MCPL_To_MAT, merge.
 Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
+
+%% Load data
 load(Mat_File_Path);
+
+%% Calculations and plots
+%Calculate vector from Z normal; simplification of dot product with unit vectors.
 Event_Angle = acosd(Dz);
 
+%Display X, Y, Z output data from source
 figure();
 scatter3(X, Y, Z, [], Event_Angle, '.');
 xlabel('X [m]');
 ylabel('Y [m]');
 
+%Display Dz, Dy, Dz output data from source
 figure();
 scatter3(Dx, Dy, Dz, [], Event_Angle, '.');
 xlabel('X [m]');
 ylabel('Y [m]');
 
+%Display histogram of Angular data from source
 figure();
 histogram(Event_Angle);
 xlabel(['Incident Angle [', char(176), ']']);
 ylabel('Frequency');
 
+%Display event angle as a 3d surface
 figure();
 scatter3(X, Y, Event_Angle, [], Event_Angle, '.');
 xlabel('X [m]');
 ylabel('Y [m]');
 
+%% Calculate intersection point with target Z co-ordinate
+%Original detector placed at 400e-3; should mimic exactly the same shape, just offset past the end of the channel to avoid funny business.
 Z_Target = 397e-3;
 %Find propogation vector
 %Prop = (Z_Target - Z)./Dz;
@@ -79,9 +92,10 @@ scatter3(Prop_X, Prop_Y, Prop_Z, [], Event_Angle, '.');
 %Rebinning parameters
 Bins_Num = 150;
 Bin_Tol = 0.1e-3;
-%Create bins
+%Create equally spaced bins in X and Y
 X_Bins = linspace(min(Prop_X(:)) - Bin_Tol, max(Prop_X(:)) + Bin_Tol, Bins_Num + 1);
 Y_Bins = linspace(min(Prop_Y(:)) - Bin_Tol, max(Prop_Y(:)) + Bin_Tol, Bins_Num + 1);
+%Create grid from bins
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
 Weighted_Binned_Angle_Min = zeros(size(Grid_X));
 Weighted_Binned_Angle_Max = zeros(size(Grid_X));
