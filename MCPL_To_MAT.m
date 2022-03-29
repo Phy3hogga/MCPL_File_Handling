@@ -371,12 +371,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if((Parpool_Num_Cores > 1) && (length(File_Chunks) > 1))
                 %Parallel processing
                 parfor Current_File_Chunk = 1:length(File_Chunks)
-                    MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                    %MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                    MCPL_Dump_Data_Chunk(Header, File_Path, Current_File_Chunk);
                 end
             else
                 %Single core processing
                 for Current_File_Chunk = 1:length(File_Chunks)
-                    MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                    %MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunks(Current_File_Chunk));
+                    MCPL_Dump_Data_Chunk(Header, File_Path, Current_File_Chunk);
                 end
             end
             
@@ -574,7 +576,11 @@ function [Byte_Position, Start_Position, End_Position] = Get_Byte_Position(Byte_
 end
 
 %% Read and Dump an MCPL File Chunk to MAT file
-function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
+function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk_Index)
+    %Get current file chunk
+    File_Chunk = Header.File_Chunks(File_Chunk_Index);
+    Total_Chunks = length(Header.File_Chunks);
+    
     %% Preallocate arrays
     if(Header.Opt_Polarisation)
         Px = zeros(File_Chunk.Events, 1, Header.Byte_Type);
@@ -610,14 +616,14 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         File_Data = fread(File_ID, Header.Opt_ParticleSize * File_Chunk.Events, 'uint8=>uint8');
         File_Data = reshape(File_Data, Header.Opt_ParticleSize, size(File_Data, 1) / Header.Opt_ParticleSize);
     elseif(Header.File_Type == 2)
-        File_Data = fread(File_ID, (Header.Opt_ParticleSize / Header.Byte_Size) * File_Chunk.Events, 'double');
+        File_Data = fread(File_ID, (Header.Opt_ParticleSize / Header.Byte_Size) * File_Chunk.Events, 'float64');
         File_Data = reshape(File_Data, Header.Byte_Size, size(File_Data, 1) / Header.Byte_Size);
     else
-        error(strcat("MCPL_To_MAT : Unknown file format for reading Chunk: ", num2str(File_Chunk.Chunk)));
+        error(strcat("MCPL_To_MAT : Chunk ", num2str(File_Chunk.Chunk), " / ", num2str(Total_Chunks), " : Unknown file format"));
     end
     Successful_Chunk_Close = fclose(File_ID);
     if(Successful_Chunk_Close == -1)
-        warning(strcat("MCPL_To_MAT : Unsuccessful File Close when Reading Data for Chunk: ", num2str(File_Chunk.Chunk)));
+        warning(strcat("MCPL_To_MAT : Chunk ", num2str(File_Chunk.Chunk), " / ", num2str(Total_Chunks), " :  Unsuccessful File Close when Reading Data for Chunk: ", num2str(File_Chunk.Chunk)));
     end
     %% Input Handling
     if(Header.File_Type == 1)
@@ -670,7 +676,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
             if(Header.Opt_Userflag)
                 UserFlag = swapbytes(UserFlag);
             end
-            warning("MCPL_To_MAT : Untested Feature : System endianness changed, Verify data using MCPL Tool.");
+            warning(strcat("MCPL_To_MAT : Chunk ", num2str(File_Chunk.Chunk), " / ", num2str(Total_Chunks), " : Untested Feature, System endianness changed, Verify data using MCPL Tool."));
         end
         % Unpack EKinDir into Dx, Dy, Dz and Energy components
         [Dx, Dy, Dz, Energy] = EKinDir_Unpack(EKinDir_1, EKinDir_2, EKinDir_3, Header.MCPL_Version);
@@ -693,7 +699,7 @@ function MCPL_Dump_Data_Chunk(Header, File_Path, File_Chunk)
         Energy(:) = File_Data(8,:);
         %Ensure Dx, Dy, Dz are unit vectors
         RMS = sqrt(Dx.^2 + Dy.^2 + Dz.^2);
-        disp("MCPL_To_MAT : Converting Dx, Dy, Dz into unit vectors. Requirement for MCPL EKinDir packing.");
+        disp(strcat("MCPL_To_MAT : Chunk ", num2str(File_Chunk.Chunk), " / ", num2str(Total_Chunks), " : Converting Dx, Dy, Dz into unit vectors. Requirement for MCPL EKinDir packing."));
         Dx = Dx./RMS;
         Dy = Dy./RMS;
         Dz = Dz./RMS;
