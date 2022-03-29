@@ -5,7 +5,7 @@ close all;
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
 %% Test Data
 %32 bit data for testing
-Directory_Path = 'D:\Data_Capture\xbd_test2';
+Directory_Path = 'D:\Data_Capture\Alex_Hex2';
 %Directory_Path = 'D:\Data_Capture\0Deg\data';
 List_File_Path = Search_Files(Directory_Path, '.mcpl');
 Merged_Filename = 'merged';
@@ -28,7 +28,7 @@ Read_Parameters.Save_EKinDir = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
 Read_Parameters.Skip_Uncompress = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
-Read_Parameters.Parpool_Num_Cores = 1;
+Read_Parameters.Parpool_Num_Cores = 2;
 %Temporary directory to use for constructing / operating on datastore
 Read_Parameters.Temp_Directory = 'D:\Windows_Temp_Files';
 %Add RAR Parameters to the Read Parameters
@@ -65,38 +65,75 @@ ylabel('Y [m]');
 
 Z_Target = 397e-3;
 %Find propogation vector
-Prop = (Z_Target - Z)./Dz;
+%Prop = (Z_Target - Z)./Dz;
 %Calculate propotation points in X,Y,Z
-Prop_Z = Prop .* Dz + Z;
-Prop_X = Prop .* Dx + X;
-Prop_Y = Prop .* Dy + Y;
+%Prop_Z = Prop .* Dz + Z;
+Prop_Z = Z;
+%Prop_X = Prop .* Dx + X;
+Prop_X = X;
+%Prop_Y = Prop .* Dy + Y;
+Prop_Y = Y;
 %Display propogated data
 scatter3(Prop_X, Prop_Y, Prop_Z, [], Event_Angle, '.');
 
 %Rebinning parameters
-Bins_Num = 250;
+Bins_Num = 150;
 Bin_Tol = 0.1e-3;
 %Create bins
 X_Bins = linspace(min(Prop_X(:)) - Bin_Tol, max(Prop_X(:)) + Bin_Tol, Bins_Num + 1);
 Y_Bins = linspace(min(Prop_Y(:)) - Bin_Tol, max(Prop_Y(:)) + Bin_Tol, Bins_Num + 1);
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
+Weighted_Binned_Angle_Min = zeros(size(Grid_X));
+Weighted_Binned_Angle_Max = zeros(size(Grid_X));
 Weighted_Binned_Angle_Mean = zeros(size(Grid_X));
 Weighted_Binned_Angle_Std = zeros(size(Grid_X));
+Weighted_Binned_Angle_Count = zeros(size(Grid_X));
 for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
         Index = ((X_Bins(Current_X) < Prop_X) & (Prop_X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Prop_Y) & (Prop_Y <= Y_Bins(Current_Y + 1));
+        Non_Weighted_Angle = Event_Angle(Index);
         Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
-        Weighted_Angle = Event_Angle(Index);
-        Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
-        Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
+        if(~isempty(Weighted_Angle))
+            %Weighted_Angle = Dz(Index);
+            Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Weighted_Angle);
+            Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Weighted_Angle);
+            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
+            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
+            Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Weighted_Angle);
+        end
     end
 end
+
+figure();
+Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Min,'FaceAlpha', .8);
+set(Surf_Fig, 'linestyle', 'none');
+colorbar();
+title('Min Angle');
+
+figure();
+Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Max,'FaceAlpha', .8);
+set(Surf_Fig, 'linestyle', 'none');
+colorbar();
+title('Max Angle');
+
 figure();
 Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Mean,'FaceAlpha', .8);
 set(Surf_Fig, 'linestyle', 'none');
+colorbar();
+title('Mean Angle');
+
 figure();
 Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Std,'FaceAlpha', .8);
 set(Surf_Fig, 'linestyle', 'none');
+colorbar();
+title('Std Angle');
+
+figure();
+Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Count,'FaceAlpha', .8);
+set(Surf_Fig, 'linestyle', 'none');
+colorbar();
+title('Count');
+
 %Create binned 2d histogram for x-y data
 % xzCount = histcounts2(Prop_X(:), Prop_Y(:), X_Bins, Y_Bins);
 % figure();
@@ -152,10 +189,10 @@ set(Surf_Fig, 'linestyle', 'none');
 %     %visdiff(Mat_File_Path{Current_Mat_File}, Mat_File_Path_2{1});
 % end
 
-figure = Get_Figure([], true);
-for Current_Ray = 1:length(Prop_X)
-    figure = Get_Figure(figure, true);
-    hold on;
-    plot3([X(Current_Ray), Prop_X(Current_Ray)], [Y(Current_Ray), Prop_Y(Current_Ray)], [Z(Current_Ray), Prop_Z(Current_Ray)]);
-end
-figure = Get_Figure(figure, false);
+% figure = Get_Figure([], true);
+% for Current_Ray = 1:length(Prop_X)
+%     figure = Get_Figure(figure, true);
+%     hold on;
+%     plot3([X(Current_Ray), Prop_X(Current_Ray)], [Y(Current_Ray), Prop_Y(Current_Ray)], [Z(Current_Ray), Prop_Z(Current_Ray)]);
+% end
+% figure = Get_Figure(figure, false);
