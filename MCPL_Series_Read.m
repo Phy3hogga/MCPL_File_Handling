@@ -9,6 +9,7 @@ Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','
 Directory_Path = 'D:\Data_Capture\Alex_Hex2';
 %Directory_Path = 'D:\Data_Capture\0Deg\data';
 List_File_Path = Search_Files(Directory_Path, '.mcpl');
+%Output MAT file path
 Merged_Filename = 'merged';
 
 [Root_File_Path, Filename, ~] = fileparts(Directory_Path);
@@ -74,27 +75,12 @@ scatter3(X, Y, Event_Angle, [], Event_Angle, '.');
 xlabel('X [m]');
 ylabel('Y [m]');
 
-%% Calculate intersection point with target Z co-ordinate
-%Original detector placed at 400e-3; should mimic exactly the same shape, just offset past the end of the channel to avoid funny business.
-Z_Target = 397e-3;
-%Find propogation vector
-%Prop = (Z_Target - Z)./Dz;
-%Calculate propotation points in X,Y,Z
-%Prop_Z = Prop .* Dz + Z;
-Prop_Z = Z;
-%Prop_X = Prop .* Dx + X;
-Prop_X = X;
-%Prop_Y = Prop .* Dy + Y;
-Prop_Y = Y;
-%Display propogated data
-scatter3(Prop_X, Prop_Y, Prop_Z, [], Event_Angle, '.');
-
 %Rebinning parameters
 Bins_Num = 150;
 Bin_Tol = 0.1e-3;
 %Create equally spaced bins in X and Y
-X_Bins = linspace(min(Prop_X(:)) - Bin_Tol, max(Prop_X(:)) + Bin_Tol, Bins_Num + 1);
-Y_Bins = linspace(min(Prop_Y(:)) - Bin_Tol, max(Prop_Y(:)) + Bin_Tol, Bins_Num + 1);
+X_Bins = linspace(min(X(:)) - Bin_Tol, max(X(:)) + Bin_Tol, Bins_Num + 1);
+Y_Bins = linspace(min(Y(:)) - Bin_Tol, max(Y(:)) + Bin_Tol, Bins_Num + 1);
 %Create grid from bins
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
 Weighted_Binned_Angle_Min = zeros(size(Grid_X));
@@ -104,7 +90,7 @@ Weighted_Binned_Angle_Std = zeros(size(Grid_X));
 Weighted_Binned_Angle_Count = zeros(size(Grid_X));
 for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
-        Index = ((X_Bins(Current_X) < Prop_X) & (Prop_X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Prop_Y) & (Prop_Y <= Y_Bins(Current_Y + 1));
+        Index = ((X_Bins(Current_X) < X) & (X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Y) & (Y <= Y_Bins(Current_Y + 1));
         Non_Weighted_Angle = Event_Angle(Index);
         Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
         if(~isempty(Weighted_Angle))
@@ -149,7 +135,7 @@ colorbar();
 title('Count');
 
 %Create binned 2d histogram for x-y data
-% xzCount = histcounts2(Prop_X(:), Prop_Y(:), X_Bins, Y_Bins);
+% xzCount = histcounts2(X(:), Y(:), X_Bins, Y_Bins);
 % figure();
 % surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), xzCount,'FaceAlpha', .8);
 
@@ -204,9 +190,9 @@ title('Count');
 % end
 
 % figure = Get_Figure([], true);
-% for Current_Ray = 1:length(Prop_X)
+% for Current_Ray = 1:length(X)
 %     figure = Get_Figure(figure, true);
 %     hold on;
-%     plot3([X(Current_Ray), Prop_X(Current_Ray)], [Y(Current_Ray), Prop_Y(Current_Ray)], [Z(Current_Ray), Prop_Z(Current_Ray)]);
+%     plot3([X(Current_Ray), X(Current_Ray)], [Y(Current_Ray), Y(Current_Ray)], [Z(Current_Ray), Z(Current_Ray)]);
 % end
 % figure = Get_Figure(figure, false);
