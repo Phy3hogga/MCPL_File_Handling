@@ -45,11 +45,15 @@ Mat_File_Path = MCPL_To_MAT(Directory_Path, Read_Parameters);
 Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
 
 %% Load data
-load(Mat_File_Path);
+%read(Mat_File_Path);
+Mat_File_Path = "I:\Alex_Hex2.mat";
+%File_Data_Store = tall(fileDatastore(Mat_File_Path, 'ReadFcn', @(x)struct2table(load(x, 'Dx', 'Dy', 'Dz', 'Energy', 'Weight', 'X', 'Y', 'Z')), 'UniformRead', true));
+File_Content = load(Mat_File_Path, 'X', 'Y', 'Dz', 'Weight');
 
 %% Calculations and plots
 %Calculate vector from Z normal; simplification of dot product with unit vectors.
-Event_Angle = acosd(Dz);
+Event_Angle = acosd(File_Data_Store.Dz);
+Event_Angle = gather(Event_Angle);
 
 %Display X, Y, Z output data from source
 figure();
@@ -78,6 +82,10 @@ ylabel('Y [m]');
 %Rebinning parameters
 Bins_Num = 150;
 Bin_Tol = 0.1e-3;
+Weights = gather(File_Data_Store.Weight);
+X = gather(File_Data_Store.X);
+Y = gather(File_Data_Store.Y);
+
 %Create equally spaced bins in X and Y
 X_Bins = linspace(min(X(:)) - Bin_Tol, max(X(:)) + Bin_Tol, Bins_Num + 1);
 Y_Bins = linspace(min(Y(:)) - Bin_Tol, max(Y(:)) + Bin_Tol, Bins_Num + 1);
@@ -88,21 +96,23 @@ Weighted_Binned_Angle_Max = zeros(size(Grid_X));
 Weighted_Binned_Angle_Mean = zeros(size(Grid_X));
 Weighted_Binned_Angle_Std = zeros(size(Grid_X));
 Weighted_Binned_Angle_Count = zeros(size(Grid_X));
+
 for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
         Index = ((X_Bins(Current_X) < X) & (X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Y) & (Y <= Y_Bins(Current_Y + 1));
         Non_Weighted_Angle = Event_Angle(Index);
-        Weighted_Angle = Event_Angle(Index) .* (Weight(Index) ./ sum(Weight(Index), 'omitnan'));
+        Weighted_Angle = Non_Weighted_Angle .* (Weights(Index) ./ sum(Weights(Index), 'omitnan'));
         if(~isempty(Weighted_Angle))
             %Weighted_Angle = Dz(Index);
-            Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Weighted_Angle);
-            Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Weighted_Angle);
+            Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Non_Weighted_Angle);
+            Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Non_Weighted_Angle);
             Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
             Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
             Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Weighted_Angle);
         end
     end
 end
+clear Weights X Y;
 
 figure();
 Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Min,'FaceAlpha', .8);
