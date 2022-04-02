@@ -31,7 +31,7 @@ Read_Parameters.Save_EKinDir = true;
 %If the GZ archive has already been uncompressed or not (if problems with WinRAR, can bypass decompression)
 Read_Parameters.Skip_Uncompress = true;
 %Number of cores for the Parpool to use when converting the raw MCPL file (integer)
-Read_Parameters.Parpool_Num_Cores = 2;
+Read_Parameters.Parpool_Num_Cores = 6;
 %Temporary directory to use for constructing / operating on datastore
 Read_Parameters.Temp_Directory = 'D:\Windows_Temp_Files';
 %Add RAR Parameters to the Read Parameters
@@ -46,101 +46,131 @@ Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
 
 %% Load data
 %read(Mat_File_Path);
-Mat_File_Path = "I:\Alex_Hex2.mat";
+Mat_File_Path = "D:\Data_Capture\Alex_Hex2\sample.mat";
 %File_Data_Store = tall(fileDatastore(Mat_File_Path, 'ReadFcn', @(x)struct2table(load(x, 'Dx', 'Dy', 'Dz', 'Energy', 'Weight', 'X', 'Y', 'Z')), 'UniformRead', true));
 File_Content = load(Mat_File_Path, 'X', 'Y', 'Dz', 'Weight');
+X = File_Content.X;
+Y = File_Content.Y;
+Dz = File_Content.Dz;
+Weight = File_Content.Weight;
 
 %% Calculations and plots
 %Calculate vector from Z normal; simplification of dot product with unit vectors.
-Event_Angle = acosd(File_Data_Store.Dz);
-Event_Angle = gather(Event_Angle);
+Event_Angle = acosd(Dz);
+%Event_Angle = gather(Event_Angle);
 
-%Display X, Y, Z output data from source
-figure();
-scatter3(X, Y, Z, [], Event_Angle, '.');
-xlabel('X [m]');
-ylabel('Y [m]');
-
-%Display Dz, Dy, Dz output data from source
-figure();
-scatter3(Dx, Dy, Dz, [], Event_Angle, '.');
-xlabel('X [m]');
-ylabel('Y [m]');
-
-%Display histogram of Angular data from source
-figure();
-histogram(Event_Angle);
-xlabel(['Incident Angle [', char(176), ']']);
-ylabel('Frequency');
-
-%Display event angle as a 3d surface
-figure();
-scatter3(X, Y, Event_Angle, [], Event_Angle, '.');
-xlabel('X [m]');
-ylabel('Y [m]');
+% %Display X, Y, Z output data from source
+% figure();
+% scatter3(X, Y, Z, [], Event_Angle, '.');
+% xlabel('X [m]');
+% ylabel('Y [m]');
+% 
+% %Display Dz, Dy, Dz output data from source
+% figure();
+% scatter3(Dx, Dy, Dz, [], Event_Angle, '.');
+% xlabel('X [m]');
+% ylabel('Y [m]');
+% 
+% %Display histogram of Angular data from source
+% figure();
+% histogram(Event_Angle);
+% xlabel(['Incident Angle [', char(176), ']']);
+% ylabel('Frequency');
+% 
+% %Display event angle as a 3d surface
+% figure();
+% scatter3(X, Y, Event_Angle, [], Event_Angle, '.');
+% xlabel('X [m]');
+% ylabel('Y [m]');
 
 %Rebinning parameters
 Bins_Num = 150;
 Bin_Tol = 0.1e-3;
-Weights = gather(File_Data_Store.Weight);
-X = gather(File_Data_Store.X);
-Y = gather(File_Data_Store.Y);
+%Weight = gather(File_Data_Store.Weight);
+%X = gather(File_Data_Store.X);
+%Y = gather(File_Data_Store.Y);
 
 %Create equally spaced bins in X and Y
 X_Bins = linspace(min(X(:)) - Bin_Tol, max(X(:)) + Bin_Tol, Bins_Num + 1);
 Y_Bins = linspace(min(Y(:)) - Bin_Tol, max(Y(:)) + Bin_Tol, Bins_Num + 1);
 %Create grid from bins
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
-Weighted_Binned_Angle_Min = zeros(size(Grid_X));
-Weighted_Binned_Angle_Max = zeros(size(Grid_X));
-Weighted_Binned_Angle_Mean = zeros(size(Grid_X));
-Weighted_Binned_Angle_Std = zeros(size(Grid_X));
-Weighted_Binned_Angle_Count = zeros(size(Grid_X));
+Weighted_Binned_Angle_Min = nan(size(Grid_X));
+Weighted_Binned_Angle_Max = nan(size(Grid_X));
+Weighted_Binned_Angle_Mean = nan(size(Grid_X));
+Weighted_Binned_Angle_Weighted_Mean = nan(size(Grid_X));
+Weighted_Binned_Angle_Std = nan(size(Grid_X));
+Weighted_Binned_Angle_Weighted_Std = nan(size(Grid_X));
+Weighted_Binned_Angle_Count = nan(size(Grid_X));
 
 for Current_X = 1:length(X_Bins) - 1
     for Current_Y = 1:length(Y_Bins) - 1
         Index = ((X_Bins(Current_X) < X) & (X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Y) & (Y <= Y_Bins(Current_Y + 1));
         Non_Weighted_Angle = Event_Angle(Index);
-        Weighted_Angle = Non_Weighted_Angle .* (Weights(Index) ./ sum(Weights(Index), 'omitnan'));
-        if(~isempty(Weighted_Angle))
+        if(~isempty(Non_Weighted_Angle))
             %Weighted_Angle = Dz(Index);
+            Weighted_Angle = sum((Non_Weighted_Angle .* Weight(Index)), 'omitnan') ./ sum(Weight(Index), 'omitnan');
+            Number_Nonzero_Weights = sum(Floating_Point_Equal(Weight(Index), 0) == 0);
+            Weighted_Std = sqrt(abs(sum(Weight(Index) .* (Non_Weighted_Angle - Weighted_Angle).^2,'omitnan')/(((Number_Nonzero_Weights - 1)/Number_Nonzero_Weights) .* sum(Weight(Index), 'omitnan'))));
             Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Non_Weighted_Angle);
             Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Non_Weighted_Angle);
-            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Weighted_Angle);
-            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Weighted_Angle);
-            Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Weighted_Angle);
+            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Non_Weighted_Angle);
+            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Non_Weighted_Angle);
+            Weighted_Binned_Angle_Weighted_Mean(Current_X, Current_Y) = Weighted_Angle;
+            Weighted_Binned_Angle_Weighted_Std(Current_X, Current_Y) = Weighted_Std;
+            Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Non_Weighted_Angle);
         end
     end
+    disp(Current_X);
 end
 clear Weights X Y;
 
 figure();
-Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Min,'FaceAlpha', .8);
-set(Surf_Fig, 'linestyle', 'none');
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Min,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Min);
 colorbar();
 title('Min Angle');
 
 figure();
-Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Max,'FaceAlpha', .8);
-set(Surf_Fig, 'linestyle', 'none');
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Max,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Max);
 colorbar();
 title('Max Angle');
 
 figure();
-Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Mean,'FaceAlpha', .8);
-set(Surf_Fig, 'linestyle', 'none');
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Mean,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Mean);
 colorbar();
 title('Mean Angle');
 
 figure();
-Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Std,'FaceAlpha', .8);
-set(Surf_Fig, 'linestyle', 'none');
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Std,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Std);
 colorbar();
 title('Std Angle');
 
 figure();
-Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Count,'FaceAlpha', .8);
-set(Surf_Fig, 'linestyle', 'none');
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Weighted_Mean,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Weighted_Mean);
+colorbar();
+title('Mean Weighted Angle');
+
+figure();
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Weighted_Std,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Weighted_Std);
+colorbar();
+title('Std Weighted Angle');
+
+figure();
+%Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Count,'FaceAlpha', .8);
+%set(Surf_Fig, 'linestyle', 'none');
+imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Count);
 colorbar();
 title('Count');
 
