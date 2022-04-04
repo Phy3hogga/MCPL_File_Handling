@@ -85,14 +85,14 @@ Event_Angle = acosd(Dz);
 
 %Rebinning parameters
 Bins_Num = 150;
-Bin_Tol = 0.1e-3;
+Spatial_Bin_Tol = 0.1e-3;
 %Weight = gather(File_Data_Store.Weight);
 %X = gather(File_Data_Store.X);
 %Y = gather(File_Data_Store.Y);
 
 %Create equally spaced bins in X and Y
-X_Bins = linspace(min(X(:)) - Bin_Tol, max(X(:)) + Bin_Tol, Bins_Num + 1);
-Y_Bins = linspace(min(Y(:)) - Bin_Tol, max(Y(:)) + Bin_Tol, Bins_Num + 1);
+X_Bins = linspace(min(X(:)) - Spatial_Bin_Tol, max(X(:)) + Spatial_Bin_Tol, Bins_Num + 1);
+Y_Bins = linspace(min(Y(:)) - Spatial_Bin_Tol, max(Y(:)) + Spatial_Bin_Tol, Bins_Num + 1);
 %Create grid from bins
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
 Weighted_Binned_Angle_Min = nan(size(Grid_X));
@@ -114,8 +114,8 @@ for Current_X = 1:length(X_Bins) - 1
             Weighted_Std = sqrt(abs(sum(Weight(Index) .* (Non_Weighted_Angle - Weighted_Angle).^2,'omitnan')/(((Number_Nonzero_Weights - 1)/Number_Nonzero_Weights) .* sum(Weight(Index), 'omitnan'))));
             Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Non_Weighted_Angle);
             Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Non_Weighted_Angle);
-            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Non_Weighted_Angle);
-            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Non_Weighted_Angle);
+            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Non_Weighted_Angle, 'omitnan');
+            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Non_Weighted_Angle, 'omitnan');
             Weighted_Binned_Angle_Weighted_Mean(Current_X, Current_Y) = Weighted_Angle;
             Weighted_Binned_Angle_Weighted_Std(Current_X, Current_Y) = Weighted_Std;
             Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Non_Weighted_Angle);
@@ -174,6 +174,45 @@ imagesc(X_Bins, Y_Bins, Weighted_Binned_Angle_Count);
 colorbar();
 title('Count');
 
+%% Weighted Histogram
+Hist_Bins = 250;
+Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.025, Hist_Bins + 1);
+Histogram_Angle_Min = zeros(1, length(Histogram_Bins) - 1);
+Histogram_Angle_Max = zeros(1, length(Histogram_Bins) - 1);
+Histogram_Angle_Mean = zeros(1, length(Histogram_Bins) - 1);
+Histogram_Angle_Std = zeros(1, length(Histogram_Bins) - 1);
+for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
+    Index = (Histogram_Bins(Current_Histogram_Bin) <= Event_Angle) & (Event_Angle < Histogram_Bins(Current_Histogram_Bin + 1));
+    if(sum(Index, 'omitnan') ~= 0)
+        Angular_Weight = Weight(Index);
+        Histogram_Angle_Min(1, Current_Histogram_Bin) = min(Angular_Weight);
+        Histogram_Angle_Max(1, Current_Histogram_Bin) = max(Angular_Weight);
+        Histogram_Angle_Mean(1, Current_Histogram_Bin) = mean(Angular_Weight, 'omitnan');
+        Histogram_Angle_Std(1, Current_Histogram_Bin) = std(Angular_Weight, 'omitnan');
+    end
+end
+
+figure();
+histogram('BinEdges', Histogram_Bins, 'BinCounts', Histogram_Angle_Min);
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Min Weight");
+
+figure();
+histogram('BinEdges', Histogram_Bins, 'BinCounts', Histogram_Angle_Max);
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Max Weight");
+
+figure();
+histogram('BinEdges', Histogram_Bins, 'BinCounts', Histogram_Angle_Mean);
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Mean Weight");
+
+figure();
+histogram('BinEdges', Histogram_Bins, 'BinCounts', Histogram_Angle_Std);
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Std Weight");
+
+%%
 %Create binned 2d histogram for x-y data
 % xzCount = histcounts2(X(:), Y(:), X_Bins, Y_Bins);
 % figure();
