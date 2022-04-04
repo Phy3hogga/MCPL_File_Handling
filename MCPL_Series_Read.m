@@ -48,11 +48,12 @@ Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
 %read(Mat_File_Path);
 Mat_File_Path = "D:\Data_Capture\Alex_Hex2\sample.mat";
 %File_Data_Store = tall(fileDatastore(Mat_File_Path, 'ReadFcn', @(x)struct2table(load(x, 'Dx', 'Dy', 'Dz', 'Energy', 'Weight', 'X', 'Y', 'Z')), 'UniformRead', true));
-File_Content = load(Mat_File_Path, 'X', 'Y', 'Dz', 'Weight');
+File_Content = load(Mat_File_Path, 'X', 'Y', 'Dz', 'Weight', 'Energy');
 X = File_Content.X;
 Y = File_Content.Y;
 Dz = File_Content.Dz;
 Weight = File_Content.Weight;
+Energy = File_Content.Energy;
 
 %% Calculations and plots
 %Calculate vector from Z normal; simplification of dot product with unit vectors.
@@ -84,15 +85,15 @@ Event_Angle = acosd(Dz);
 % ylabel('Y [m]');
 
 %Rebinning parameters
-Bins_Num = 150;
+Num_Spatial_Bins = 150;
 Spatial_Bin_Tol = 0.1e-3;
 %Weight = gather(File_Data_Store.Weight);
 %X = gather(File_Data_Store.X);
 %Y = gather(File_Data_Store.Y);
 
 %Create equally spaced bins in X and Y
-X_Bins = linspace(min(X(:)) - Spatial_Bin_Tol, max(X(:)) + Spatial_Bin_Tol, Bins_Num + 1);
-Y_Bins = linspace(min(Y(:)) - Spatial_Bin_Tol, max(Y(:)) + Spatial_Bin_Tol, Bins_Num + 1);
+X_Bins = linspace(min(X(:)) - Spatial_Bin_Tol, max(X(:)) + Spatial_Bin_Tol, Num_Spatial_Bins + 1);
+Y_Bins = linspace(min(Y(:)) - Spatial_Bin_Tol, max(Y(:)) + Spatial_Bin_Tol, Num_Spatial_Bins + 1);
 %Create grid from bins
 [Grid_X, Grid_Y] = ndgrid(X_Bins, Y_Bins);
 Weighted_Binned_Angle_Min = nan(size(Grid_X));
@@ -175,12 +176,13 @@ colorbar();
 title('Count');
 
 %% Weighted Histogram
-Hist_Bins = 250;
-Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.025, Hist_Bins + 1);
+Num_Hist_Bins = 150;
+Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.01, Num_Hist_Bins + 1);
 Histogram_Angle_Min = zeros(1, length(Histogram_Bins) - 1);
 Histogram_Angle_Max = zeros(1, length(Histogram_Bins) - 1);
 Histogram_Angle_Mean = zeros(1, length(Histogram_Bins) - 1);
 Histogram_Angle_Std = zeros(1, length(Histogram_Bins) - 1);
+Histogram_Angle_Count = zeros(1, length(Histogram_Bins) - 1);
 for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
     Index = (Histogram_Bins(Current_Histogram_Bin) <= Event_Angle) & (Event_Angle < Histogram_Bins(Current_Histogram_Bin + 1));
     if(sum(Index, 'omitnan') ~= 0)
@@ -189,6 +191,7 @@ for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
         Histogram_Angle_Max(1, Current_Histogram_Bin) = max(Angular_Weight);
         Histogram_Angle_Mean(1, Current_Histogram_Bin) = mean(Angular_Weight, 'omitnan');
         Histogram_Angle_Std(1, Current_Histogram_Bin) = std(Angular_Weight, 'omitnan');
+        Histogram_Angle_Count(1, Current_Histogram_Bin) = length(Angular_Weight);
     end
 end
 
@@ -211,6 +214,38 @@ figure();
 histogram('BinEdges', Histogram_Bins, 'BinCounts', Histogram_Angle_Std);
 xlabel(strcat("Angular Incidence [", char(176), "]"));
 ylabel("Std Weight");
+
+%Average histogram bins
+Histogram_Bins_Average = (Histogram_Bins(1:end-1) + Histogram_Bins(2:end))./2;
+figure();
+errorbar(Histogram_Bins_Average, Histogram_Angle_Mean, Histogram_Angle_Std);
+
+%% Weight-Energy histogram
+Num_Hist_Bins = 150;
+Num_Energy_Bins = 50;
+Energy_Max = 100;
+Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.01, Num_Hist_Bins + 1);
+Energy_Bins = linspace(0, Energy_Max, Num_Energy_Bins + 1);
+Energy_Histogram_Angle_Min = zeros(length(Energy_Bins) - 1, length(Histogram_Bins) - 1);
+Energy_Histogram_Angle_Max = zeros(length(Energy_Bins) - 1, length(Histogram_Bins) - 1);
+Energy_Histogram_Angle_Mean = zeros(length(Energy_Bins) - 1, length(Histogram_Bins) - 1);
+Energy_Histogram_Angle_Std = zeros(length(Energy_Bins) - 1, length(Histogram_Bins) - 1);
+Energy_Histogram_Angle_Count = zeros(length(Energy_Bins) - 1, length(Histogram_Bins) - 1);
+for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
+    Index = (Histogram_Bins(Current_Histogram_Bin) <= Event_Angle) & (Event_Angle < Histogram_Bins(Current_Histogram_Bin + 1));
+    for Current_Energy_Bin = 1:length(Energy_Bins) - 1
+        Energy_Index = (Energy_Bins(Current_Energy_Bin) <= Energy) & (Energy < Energy_Bins(Current_Energy_Bin + 1));
+        Energy_Hist_Index = Index & Energy_Index;
+        if(sum(Energy_Hist_Index, 'omitnan') ~= 0)
+            Angular_Weight = Weight(Energy_Hist_Index);
+            Energy_Histogram_Angle_Min(Current_Energy_Bin, Current_Histogram_Bin) = min(Angular_Weight);
+            Energy_Histogram_Angle_Max(Current_Energy_Bin, Current_Histogram_Bin) = max(Angular_Weight);
+            Energy_Histogram_Angle_Mean(Current_Energy_Bin, Current_Histogram_Bin) = mean(Angular_Weight, 'omitnan');
+            Energy_Histogram_Angle_Std(Current_Energy_Bin, Current_Histogram_Bin) = std(Angular_Weight, 'omitnan');
+            Energy_Histogram_Angle_Count(Current_Energy_Bin, Current_Histogram_Bin) = length(Angular_Weight);
+        end
+    end
+end
 
 %%
 %Create binned 2d histogram for x-y data
