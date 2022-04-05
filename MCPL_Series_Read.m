@@ -222,7 +222,7 @@ errorbar(Histogram_Bins_Average, Histogram_Angle_Mean, Histogram_Angle_Std);
 
 %% Weight-Energy histogram
 Num_Hist_Bins = 150;
-Num_Energy_Bins = 50;
+Num_Energy_Bins = 100;
 Energy_Max = 100;
 Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.01, Num_Hist_Bins + 1);
 Energy_Bins = linspace(0, Energy_Max, Num_Energy_Bins + 1);
@@ -247,6 +247,40 @@ for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
     end
 end
 
+figure();
+imagesc(Histogram_Bins, Energy_Bins, Energy_Histogram_Angle_Min);
+colorbar();
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Energy [keV]");
+title("Min Weight");
+
+figure();
+imagesc(Histogram_Bins, Energy_Bins, Energy_Histogram_Angle_Max);
+colorbar();
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Energy [keV]");
+title("Max Weight");
+
+figure();
+imagesc(Histogram_Bins, Energy_Bins, Energy_Histogram_Angle_Mean);
+colorbar();
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Energy [keV]");
+title("Mean Weight");
+
+figure();
+imagesc(Histogram_Bins, Energy_Bins, Energy_Histogram_Angle_Std);
+colorbar();
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Energy [keV]");
+title("Std Weight");
+
+figure();
+imagesc(Histogram_Bins, Energy_Bins, Energy_Histogram_Angle_Count);
+colorbar();
+xlabel(strcat("Angular Incidence [", char(176), "]"));
+ylabel("Energy [keV]");
+title("Num Weight");
 %%
 %Create binned 2d histogram for x-y data
 % xzCount = histcounts2(X(:), Y(:), X_Bins, Y_Bins);
