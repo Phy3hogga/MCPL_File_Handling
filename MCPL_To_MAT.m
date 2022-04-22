@@ -151,6 +151,11 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
     end
     clear File_Path_Search;
     
+    %% Parallel core processing setup
+    if(Parpool_Num_Cores > 1)
+        Parpool = Parpool_Create(Parpool_Num_Cores);
+    end
+    
     %Preallocate the list of file paths
     MAT_File_Path{length(MCPL_File_List)} = '';
     %% Read MCPL or XBD files into temporary MAT files
@@ -312,10 +317,6 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             elseif(File.Type == 2)
                 disp("MCPL_To_MAT : Reading XBD Data");
             end
-            %% Parallel core processing setup
-            if(Parpool_Num_Cores > 1)
-                Parpool = Parpool_Create(Parpool_Num_Cores);
-            end
             %If parpool is disabled; requires the number of cores to be assigned to a variable
             if(~exist('Parpool', 'var'))
                 Parpool.NumWorkers = Parpool_Num_Cores;
@@ -430,14 +431,13 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             
             %% Cleanup temporary files (including all files within)
             Attempt_Directory_Deletion(Temp_Output_File_Root);
-            
-            %% Close parpool
-            if(Parpool_Num_Cores > 1)
-                Parpool_Delete();
-            end
         else
             error(strcat("MCPL_To_MAT : MCPL file format not found for file: ", MCPL_File_List(Read_Index).name));
         end
+    end
+    %% Close parpool
+    if(Parpool_Num_Cores > 1)
+        Parpool_Delete();
     end
     
     %% Datastore write function (local to parent to save on memory duplication)
