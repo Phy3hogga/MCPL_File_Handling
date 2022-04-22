@@ -10,7 +10,7 @@ File_Type = '.xbd';
 
 %% Test Data
 %32 bit data for testing
-Directory_Path = 'D:\Simulations\out';
+Directory_Path = 'D:\Simulations\81\out';
 %Directory_Path = 'D:\Data_Capture\0Deg\data';
 List_File_Path = Search_Files(Directory_Path, File_Type);
 %Output MAT file path
@@ -90,6 +90,7 @@ Event_Angle = acosd(Dz);
 
 %Rebinning parameters
 Num_Spatial_Bins = 150;
+Num_Hist_Bins = 150;
 Spatial_Bin_Tol = 0.1e-3;
 %Weight = gather(File_Data_Store.Weight);
 %X = gather(File_Data_Store.X);
@@ -207,7 +208,6 @@ colorbar();
 title('Count');
 
 %% Weighted Histogram
-Num_Hist_Bins = 150;
 Histogram_Bins = linspace(0, max(Event_Angle(:)) + 0.01, Num_Hist_Bins + 1);
 Histogram_Angle_Min = zeros(1, length(Histogram_Bins) - 1);
 Histogram_Angle_Max = zeros(1, length(Histogram_Bins) - 1);
