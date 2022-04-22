@@ -4,11 +4,15 @@ close all;
 %Include directories to external GIT repositories 
 Include_Subdirectories({'Data_Operations','File_Operations','Input_Validation','Parpool', 'Waitbar', 'WinRAR', 'MCPL_Functions'});
 
+%% File type for searching for raw data
+%File_Type = '.mcpl';
+File_Type = '.xbd';
+
 %% Test Data
 %32 bit data for testing
-Directory_Path = 'D:\Data_Capture\Alex_Hex2';
+Directory_Path = 'D:\Simulations\out';
 %Directory_Path = 'D:\Data_Capture\0Deg\data';
-List_File_Path = Search_Files(Directory_Path, '.mcpl');
+List_File_Path = Search_Files(Directory_Path, File_Type);
 %Output MAT file path
 Merged_Filename = 'merged';
 
@@ -46,7 +50,7 @@ Mat_File_Path = MCPL_Merge_Files(Mat_File_Path, Merged_File_Path, false);
 
 %% Load data
 %read(Mat_File_Path);
-Mat_File_Path = "D:\Data_Capture\Alex_Hex2\sample.mat";
+%Mat_File_Path = "D:\Data_Capture\Alex_Hex2\sample.mat";
 %File_Data_Store = tall(fileDatastore(Mat_File_Path, 'ReadFcn', @(x)struct2table(load(x, 'Dx', 'Dy', 'Dz', 'Energy', 'Weight', 'X', 'Y', 'Z')), 'UniformRead', true));
 File_Content = load(Mat_File_Path, 'X', 'Y', 'Dz', 'Weight', 'Energy');
 X = File_Content.X;
@@ -104,27 +108,54 @@ Weighted_Binned_Angle_Std = nan(size(Grid_X));
 Weighted_Binned_Angle_Weighted_Std = nan(size(Grid_X));
 Weighted_Binned_Angle_Count = nan(size(Grid_X));
 
+Parpool_Create();
 for Current_X = 1:length(X_Bins) - 1
-    for Current_Y = 1:length(Y_Bins) - 1
-        Index = ((X_Bins(Current_X) < X) & (X <= X_Bins(Current_X + 1))) & (Y_Bins(Current_Y) < Y) & (Y <= Y_Bins(Current_Y + 1));
-        Non_Weighted_Angle = Event_Angle(Index);
-        if(~isempty(Non_Weighted_Angle))
+    %Get X Index
+    X_Index = (X_Bins(Current_X) < X) & (X <= X_Bins(Current_X + 1));
+    %Preallocate line data
+    Weighted_Binned_Angle_Line_Min = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Max = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Mean = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Std = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Weighted_Mean = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Weighted_Std = nan(size(Y_Bins));
+    Weighted_Binned_Angle_Line_Count = nan(size(Y_Bins));
+    parfor Current_Y = 1:length(Y_Bins) - 1
+        % Get Y index
+        Y_Index = (Y_Bins(Current_Y) < Y) & (Y <= Y_Bins(Current_Y + 1));
+        % Combine X and Y index limits
+        Index = X_Index & Y_Index;
+        % Load data
+        Pixel_Non_Weighted_Angle = Event_Angle(Index);
+        Pixel_Weight = Weight(Index);
+        if(~isempty(Pixel_Non_Weighted_Angle))
+            %% Calculations
             %Weighted_Angle = Dz(Index);
-            Weighted_Angle = sum((Non_Weighted_Angle .* Weight(Index)), 'omitnan') ./ sum(Weight(Index), 'omitnan');
-            Number_Nonzero_Weights = sum(Floating_Point_Equal(Weight(Index), 0) == 0);
-            Weighted_Std = sqrt(abs(sum(Weight(Index) .* (Non_Weighted_Angle - Weighted_Angle).^2,'omitnan')/(((Number_Nonzero_Weights - 1)/Number_Nonzero_Weights) .* sum(Weight(Index), 'omitnan'))));
-            Weighted_Binned_Angle_Min(Current_X, Current_Y) = min(Non_Weighted_Angle);
-            Weighted_Binned_Angle_Max(Current_X, Current_Y) = max(Non_Weighted_Angle);
-            Weighted_Binned_Angle_Mean(Current_X, Current_Y) = mean(Non_Weighted_Angle, 'omitnan');
-            Weighted_Binned_Angle_Std(Current_X, Current_Y) = std(Non_Weighted_Angle, 'omitnan');
-            Weighted_Binned_Angle_Weighted_Mean(Current_X, Current_Y) = Weighted_Angle;
-            Weighted_Binned_Angle_Weighted_Std(Current_X, Current_Y) = Weighted_Std;
-            Weighted_Binned_Angle_Count(Current_X, Current_Y) = length(Non_Weighted_Angle);
+            Weighted_Angle = sum((Pixel_Non_Weighted_Angle .* Pixel_Weight), 'omitnan') ./ sum(Pixel_Weight, 'omitnan');
+            Number_Nonzero_Weights = sum(Floating_Point_Equal(Pixel_Weight, 0) == 0);
+            Weighted_Std = sqrt(abs(sum(Pixel_Weight .* (Pixel_Non_Weighted_Angle - Weighted_Angle).^2,'omitnan')/(((Number_Nonzero_Weights - 1)/Number_Nonzero_Weights) .* sum(Pixel_Weight, 'omitnan'))));
+            %% Hold data for single X line
+            Weighted_Binned_Angle_Line_Min(Current_Y) = min(Pixel_Non_Weighted_Angle);
+            Weighted_Binned_Angle_Line_Max(Current_Y) = max(Pixel_Non_Weighted_Angle);
+            Weighted_Binned_Angle_Line_Mean(Current_Y) = mean(Pixel_Non_Weighted_Angle, 'omitnan');
+            Weighted_Binned_Angle_Line_Std(Current_Y) = std(Pixel_Non_Weighted_Angle, 'omitnan');
+            Weighted_Binned_Angle_Line_Weighted_Mean(Current_Y) = Weighted_Angle;
+            Weighted_Binned_Angle_Line_Weighted_Std(Current_Y) = Weighted_Std;
+            Weighted_Binned_Angle_Line_Count(Current_Y) = length(Pixel_Non_Weighted_Angle);
         end
     end
+    %% Save data
+    Weighted_Binned_Angle_Min(Current_X, :) = Weighted_Binned_Angle_Line_Min;
+    Weighted_Binned_Angle_Max(Current_X, :) = Weighted_Binned_Angle_Line_Max;
+    Weighted_Binned_Angle_Mean(Current_X, :) = Weighted_Binned_Angle_Line_Mean;
+    Weighted_Binned_Angle_Std(Current_X, :) = Weighted_Binned_Angle_Line_Std;
+    Weighted_Binned_Angle_Weighted_Mean(Current_X, :) = Weighted_Binned_Angle_Line_Weighted_Mean;
+    Weighted_Binned_Angle_Weighted_Std(Current_X, :) = Weighted_Binned_Angle_Line_Weighted_Std;
+    Weighted_Binned_Angle_Count(Current_X, :) = Weighted_Binned_Angle_Line_Count;
     disp(Current_X);
 end
-clear Weights X Y;
+Parpool_Delete();
+clear Weights X Y Weighted_Binned_Angle_Line_Min Weighted_Binned_Angle_Line_Max Weighted_Binned_Angle_Line_Mean Weighted_Binned_Angle_Line_Std Weighted_Binned_Angle_Line_Weighted_Mean Weighted_Binned_Angle_Line_Weighted_Std Weighted_Binned_Angle_Line_Count X_Index Y_Index;
 
 figure();
 %Surf_Fig = surf(Grid_X, Grid_Y, min(zlim())*ones(size(Grid_X)), Weighted_Binned_Angle_Min,'FaceAlpha', .8);
@@ -186,7 +217,7 @@ Histogram_Angle_Count = zeros(1, length(Histogram_Bins) - 1);
 for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
     Index = (Histogram_Bins(Current_Histogram_Bin) <= Event_Angle) & (Event_Angle < Histogram_Bins(Current_Histogram_Bin + 1));
     if(sum(Index, 'omitnan') ~= 0)
-        Angular_Weight = Weight(Index);
+        Angular_Weight = Pixel_Weight;
         Histogram_Angle_Min(1, Current_Histogram_Bin) = min(Angular_Weight);
         Histogram_Angle_Max(1, Current_Histogram_Bin) = max(Angular_Weight);
         Histogram_Angle_Mean(1, Current_Histogram_Bin) = mean(Angular_Weight, 'omitnan');
