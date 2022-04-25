@@ -217,7 +217,7 @@ Histogram_Angle_Count = zeros(1, length(Histogram_Bins) - 1);
 for Current_Histogram_Bin = 1:length(Histogram_Bins) - 1
     Index = (Histogram_Bins(Current_Histogram_Bin) <= Event_Angle) & (Event_Angle < Histogram_Bins(Current_Histogram_Bin + 1));
     if(sum(Index, 'omitnan') ~= 0)
-        Angular_Weight = Pixel_Weight;
+        Angular_Weight = Weight(Index);
         Histogram_Angle_Min(1, Current_Histogram_Bin) = min(Angular_Weight);
         Histogram_Angle_Max(1, Current_Histogram_Bin) = max(Angular_Weight);
         Histogram_Angle_Mean(1, Current_Histogram_Bin) = mean(Angular_Weight, 'omitnan');
