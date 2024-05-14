@@ -321,7 +321,11 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             if(~exist('Parpool', 'var'))
                 Parpool.NumWorkers = Parpool_Num_Cores;
             end
-            [~, System_Memory] = memory;
+            if(ispc())
+                [~, System_Memory] = memory;
+            else
+                System_Memory = javaMethod('maxMemory', javaMethod('getRuntime', 'java.lang.Runtime'));
+            end
             %Calculate file chunk interval depending on available system memory and the total file size
             %Addition of 3 fields for unpacking of EKinDir(E,x,y,z) to E, Dir(x,y,z)
             %Memory compensation factor of 40% use for additional data handling overhead while processing
