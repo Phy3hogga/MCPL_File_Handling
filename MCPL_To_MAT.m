@@ -323,13 +323,14 @@ function MAT_File_Path = MCPL_To_MAT(MCPL_File_Path, Read_Parameters)
             end
             if(ispc())
                 [~, System_Memory] = memory;
+                Physical_Memory_Available = System_Memory.PhysicalMemory.Available;
             else
-                System_Memory = javaMethod('maxMemory', javaMethod('getRuntime', 'java.lang.Runtime'));
+                Physical_Memory_Available = javaMethod('maxMemory', javaMethod('getRuntime', 'java.lang.Runtime'));
             end
             %Calculate file chunk interval depending on available system memory and the total file size
             %Addition of 3 fields for unpacking of EKinDir(E,x,y,z) to E, Dir(x,y,z)
             %Memory compensation factor of 40% use for additional data handling overhead while processing
-            Interval_Memory = floor(((System_Memory.PhysicalMemory.Available * 0.4) / Parpool.NumWorkers) / (Header.Opt_ParticleSize + (3 * Byte_Size)));
+            Interval_Memory = floor(((Physical_Memory_Available * 0.4) / Parpool.NumWorkers) / (Header.Opt_ParticleSize + (3 * Byte_Size)));
             Interval_File = floor((File.Data / Parpool.NumWorkers) / (Header.Opt_ParticleSize + (3 * Byte_Size)));
             %Change chunk interval based on memory available and file size
             if(Interval_Memory < Interval_File)
