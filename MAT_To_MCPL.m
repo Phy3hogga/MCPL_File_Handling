@@ -128,8 +128,13 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                     end
                     
                     %Find memory limits for translating file contents in memory between datatypes
-                    [~, System_Memory] = memory;
-                    Interval = floor((System_Memory.PhysicalMemory.Available * 0.35) / (Header.Opt_ParticleSize + (3 * Header.Byte_Size)));
+                    if(ispc())
+                        [~, System_Memory] = memory;
+                        Physical_Memory_Available = System_Memory.PhysicalMemory.Available;
+                    else
+                        Physical_Memory_Available = javaMethod('maxMemory', javaMethod('getRuntime', 'java.lang.Runtime'));
+                    end
+                    Interval = floor((Physical_Memory_Available * 0.35) / (Header.Opt_ParticleSize + (3 * Header.Byte_Size)));
                     Chunks = 1:Interval:Header.Particles;
                     if(length(Chunks) > 1)
                         %Edit final chunk (should be minor) to add any remaining photon chunks that aren't included via equal division
