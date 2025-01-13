@@ -144,14 +144,18 @@ function MCPL_File_Path = MAT_To_MCPL(Mat_File_Path, MCPL_File_Path, Progress_Ba
                         end
                         %Calculate dynamic and corrected interval
                         Interval = Chunks(2:end) - Chunks(1:end-1);
-                        File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1), 'Start', num2cell(((Chunks(1:end-1)-1) * Header.Opt_ParticleSize) + Header.End), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Header.Opt_ParticleSize + Header.End + 1), 'Events', num2cell(Interval));
                         %End of file correction (should be a single Event)
-                        if(File_Chunks(end).End ~= File.End)
+                        if(sum(Interval) ~= Header.Particles)
                             %Adjust final chunk end if required
-                            File_Chunks(end).End = File.End;
-                            %Adjust chunk size as per end of file
-                            File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Header.Opt_ParticleSize;
+                            Interval(end) = Interval(end) + (Header.Particles - sum(Interval)) - 1;
                         end
+                        File_Chunks = struct('Chunk', num2cell(1:1:length(Chunks)-1), 'Start', num2cell(((Chunks(1:end-1)-1) * Header.Opt_ParticleSize) + Header.End + 1), 'End', num2cell(((Chunks(1:end-1)-1) + Interval - 1) * Header.Opt_ParticleSize + Header.End + 1), 'Events', num2cell(Interval));
+                        %if(File_Chunks(end).End ~= File.End)
+                        %    %Adjust final chunk end if required
+                        %    File_Chunks(end).End = File.End;
+                        %    %Adjust chunk size as per end of file
+                        %    File_Chunks(end).Events = (File_Chunks(end).End - File_Chunks(end).Start)/Header.Opt_ParticleSize;
+                        %end
                     else
                         File_Chunks(1).Chunk = 1;
                         File_Chunks(1).Start = 1;
